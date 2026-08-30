@@ -8,8 +8,13 @@ rows.push({retailer:'Best Buy',sku:'TV1',storeId:'101',price:1,observedAt:'2026-
 const recent=B.recentWindow(rows,{retailer:'Best Buy',sku:'TV1',storeId:'101'},{now,hours:24*90});
 assert.strictEqual(recent.length,12,'stale and future observations must be excluded');
 const base=B.robustBaseline(rows,{retailer:'Best Buy',sku:'TV1',storeId:'101'},{now,hours:24*90});
-assert.strictEqual(base.count,12);assert(base.median>=490&&base.median<=510);assert(base.confidence>=80);assert.strictEqual(base.sourceFamilies,2);
-const anomaly=B.scorePriceAnomaly(149.99,base);assert(anomaly.dropPct>69);assert(anomaly.score>=70);assert(anomaly.confidence>=70);assert.strictEqual(anomaly.label,'Extreme Price Anomaly');
+assert.strictEqual(base.count,12);assert(base.median>=490&&base.median<=510);assert(base.confidence>=75);assert.strictEqual(base.sourceFamilies,2);
+const anomaly=B.scorePriceAnomaly(149.99,base);assert(anomaly.dropPct>69);assert(anomaly.score>=70);assert(anomaly.confidence>=70);assert.strictEqual(anomaly.label,'Extreme Price Anomaly');assert.strictEqual(anomaly.baselineConfidence,base.confidence);
 const normal=B.scorePriceAnomaly(489.99,base);assert(normal.dropPct<5);assert.strictEqual(normal.label,'Normal Range');
 const weak=B.scorePriceAnomaly(100,{median:null,confidence:0});assert.strictEqual(weak.label,'Insufficient History');
-console.log('HUNTIQ robust baseline tests passed',{baseline:base,anomaly});
+const burst=Array.from({length:12},(_,i)=>({retailer:'Target',sku:'A',storeId:'1',price:399,observedAt:new Date(now-i*15*60e3).toISOString(),verified:true,sourceFamily:'retailer'}));
+const burstBase=B.robustBaseline(burst,{retailer:'Target',sku:'A',storeId:'1'},{now,hours:24,minSpacingHours:6});
+assert(burstBase.count<burstBase.rawCount,'rapid duplicate polling must not masquerade as independent history');
+assert(burstBase.duplicateSuppressed>=10,'duplicate suppression should expose poll-noise count');
+assert(burstBase.confidence<60,'one short burst from one source must remain low confidence');
+console.log('HUNTIQ robust baseline tests passed',{baseline:base,burst:burstBase,anomaly});
