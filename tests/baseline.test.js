@@ -1,0 +1,15 @@
+const assert=require('assert');
+const B=require('../lib/baseline.js');
+const now=new Date('2026-08-30T18:00:00Z').getTime();
+const rows=[];
+for(let i=0;i<12;i++)rows.push({retailer:'Best Buy',sku:'TV1',storeId:'101',price:500+(i%3-1)*10,observedAt:new Date(now-(i+1)*24*36e5).toISOString(),verified:i<9,sourceFamily:i%2?'retailer':'api'});
+rows.push({retailer:'Best Buy',sku:'TV1',storeId:'101',price:50,observedAt:'2026-01-01T00:00:00Z',verified:true,sourceFamily:'api'});
+rows.push({retailer:'Best Buy',sku:'TV1',storeId:'101',price:1,observedAt:'2026-09-01T00:00:00Z',verified:true,sourceFamily:'api'});
+const recent=B.recentWindow(rows,{retailer:'Best Buy',sku:'TV1',storeId:'101'},{now,hours:24*90});
+assert.strictEqual(recent.length,12,'stale and future observations must be excluded');
+const base=B.robustBaseline(rows,{retailer:'Best Buy',sku:'TV1',storeId:'101'},{now,hours:24*90});
+assert.strictEqual(base.count,12);assert(base.median>=490&&base.median<=510);assert(base.confidence>=80);assert.strictEqual(base.sourceFamilies,2);
+const anomaly=B.scorePriceAnomaly(149.99,base);assert(anomaly.dropPct>69);assert(anomaly.score>=70);assert(anomaly.confidence>=70);assert.strictEqual(anomaly.label,'Extreme Price Anomaly');
+const normal=B.scorePriceAnomaly(489.99,base);assert(normal.dropPct<5);assert.strictEqual(normal.label,'Normal Range');
+const weak=B.scorePriceAnomaly(100,{median:null,confidence:0});assert.strictEqual(weak.label,'Insufficient History');
+console.log('HUNTIQ robust baseline tests passed',{baseline:base,anomaly});
