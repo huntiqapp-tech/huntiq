@@ -10,6 +10,13 @@ assert.strictEqual(resale.askingMedian,520);
 assert.strictEqual(resale.conservativeValue,460);
 assert.strictEqual(resale.upsideValue,500);
 assert.strictEqual(resale.windowCoverage,1);
+assert(resale.spreadPct>0);
+assert(resale.resaleConfidence>70);
+
+const tight=E.resaleSummary({d30:500,d60:495,d90:490,soldCount:30,currentAsks:[505,500,495]});
+const noisy=E.resaleSummary({d30:600,d60:450,d90:300,soldCount:30,currentAsks:[800,850,900]});
+assert(tight.resaleConfidence>noisy.resaleConfidence);
+assert(noisy.spreadPct>tight.spreadPct);
 
 // Missing windows must keep their original weights rather than shifting the 30-day weight to older data.
 const missing30=E.weightedMedianMarket({d60:400,d90:300,currentAsks:[900]});
@@ -33,6 +40,7 @@ assert(normal.confidence<65);
 const evaluated=E.evaluateOpportunity({price:129,referencePrice:599,priceHistory:[599,599,579,599,599,599,589,599,599,599,599,599,599,599],comps:{d30:489,d60:475,d90:469,soldCount:38},feeRate:0.135,shipping:24,taxRate:0.06});
 assert(evaluated.economics.profit>250);
 assert(evaluated.downsideEconomics.profit>200);
+assert(evaluated.downsideEconomics.roi>100);
 assert(evaluated.flipScore>=70);
 assert(evaluated.anomaly.confidence>=85);
 console.log('HUNTIQ engine tests passed', {flipScore:evaluated.flipScore, roi:evaluated.economics.roi, downside:evaluated.downsideEconomics.profit, anomaly:evaluated.anomaly.confidence});
