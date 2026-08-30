@@ -40,15 +40,22 @@ assert.strictEqual(anomaly.label,'Probable Error');
 const weakEvidence=E.anomalyScore({currentPrice:99,history:[399,399,379,399,399,389,399,399,399,399,399,399,399,399],dataQuality:1,evidenceQuality:.4});
 assert(weakEvidence.confidence<anomaly.confidence);
 assert(weakEvidence.quality===.4);
+const weakConfirmation=E.anomalyScore({currentPrice:99,history:[399,399,379,399,399,389,399,399,399,399,399,399,399,399],dataQuality:1,evidenceQuality:1,confirmationQuality:.2});
+assert(weakConfirmation.confidence<anomaly.confidence);
+assert(weakConfirmation.confirmationFactor<1);
 
 const normal=E.anomalyScore({currentPrice:380,history:[399,389,379,399,389,379,399,389,379,399,389,379,399,389]});
 assert(normal.confidence<65);
 
-const evaluated=E.evaluateOpportunity({price:129,referencePrice:599,priceHistory:[599,599,579,599,599,599,589,599,599,599,599,599,599,599],comps:{d30:489,d60:475,d90:469,soldCount:38},feeRate:0.135,shipping:24,taxRate:0.06,holdingCostPerDay:.1});
+const evaluated=E.evaluateOpportunity({price:129,referencePrice:599,priceHistory:[599,599,579,599,599,599,589,599,599,599,599,599,599,599],comps:{d30:489,d60:475,d90:469,soldCount:38},feeRate:0.135,shipping:24,taxRate:0.06,holdingCostPerDay:.1,confirmationScore:90,evidenceQuality:.95});
 assert(evaluated.economics.profit>250);
 assert(evaluated.downsideEconomics.profit>200);
 assert(evaluated.downsideEconomics.roi>100);
 assert(evaluated.flipScore>=70);
-assert(evaluated.anomaly.confidence>=85);
+assert(evaluated.anomaly.confidence>=80);
 assert(evaluated.resale.estimatedDaysToSell>0);
-console.log('HUNTIQ engine tests passed', {flipScore:evaluated.flipScore, roi:evaluated.economics.roi, downside:evaluated.downsideEconomics.profit, anomaly:evaluated.anomaly.confidence});
+assert(evaluated.riskAdjustedEconomics.profit<evaluated.economics.profit);
+assert(evaluated.riskAdjustedEconomics.roi<evaluated.economics.roi);
+const weakerRisk=E.evaluateOpportunity({price:129,referencePrice:599,priceHistory:[599,599,579,599,599,599,589,599,599,599,599,599,599,599],comps:{d30:489,d60:475,d90:469,soldCount:38},feeRate:0.135,shipping:24,taxRate:0.06,confirmationScore:30,evidenceQuality:.5});
+assert(weakerRisk.riskAdjustedEconomics.profit<evaluated.riskAdjustedEconomics.profit);
+console.log('HUNTIQ engine tests passed', {flipScore:evaluated.flipScore, roi:evaluated.economics.roi, riskRoi:evaluated.riskAdjustedEconomics.roi, downside:evaluated.downsideEconomics.profit, anomaly:evaluated.anomaly.confidence});
