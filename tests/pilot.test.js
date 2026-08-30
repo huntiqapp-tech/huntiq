@@ -1,0 +1,14 @@
+const assert=require('assert');
+const Pilot=require('../lib/pilot');
+const now=new Date('2026-08-30T14:00:00Z').getTime();
+const retail={retailer:'Best Buy',sku:'6531631',storeId:'123',productName:'Example 4K TV',brand:'Example',model:'TV55-X',gtin:'123456789012',currentPrice:199.99,regularPrice:599.99,observedAt:new Date(now-3600e3).toISOString(),evidenceQuality:.98};
+const sold=(price,days,extra={})=>({title:'Example 4K TV TV55-X',brand:'Example',model:'TV55-X',gtin:'123456789012',price,sold:true,soldAt:new Date(now-days*864e5).toISOString(),...extra});
+const listings=[sold(430,10),sold(420,20),sold(410,40),sold(400,70),{title:'Example 4K TV TV55-X',brand:'Example',model:'TV55-X',gtin:'123456789012',price:449,sold:false},{title:'Wrong model',brand:'Example',model:'TV44-Z',gtin:'999999999999',price:900,sold:true,soldAt:new Date(now-5*864e5).toISOString()}];
+const comps=Pilot.compWindows(retail,listings,{now,minMatch:75});
+assert.strictEqual(comps.matchedCount,5);assert.strictEqual(comps.rejectedCount,1);assert.strictEqual(comps.d30,425);assert.strictEqual(comps.d60,420);assert.strictEqual(comps.d90,415);assert.strictEqual(comps.currentAsks[0],449);
+const result=Pilot.evaluatePilot({retail,listings,history:[599.99,599.99,549.99,499.99],now,engine:{feeRate:.135,shipping:25,taxRate:.06,confirmationScore:90},alerts:{minFlipScore:0,minProfit:0,minRoi:0,minRiskAdjustedProfit:0,minRiskAdjustedRoi:0,minAnomalyConfidence:0,minEvidenceQuality:0,minConfirmationScore:0,minDownsideSafetyMarginPct:-999,minPurchaseHeadroomPct:-999}});
+assert(result.opportunity.resale.marketValue<500,'mismatched $900 comp must not inflate market');
+assert(result.opportunity.economics.profit>0&&result.opportunity.economics.roi>0,'matched comps should produce positive economics');
+const bad=Pilot.evaluatePilot({retail,listings:[{title:'Unrelated bundle',brand:'Other',model:'NOPE',gtin:'999999999999',price:1200,sold:true,soldAt:new Date(now-2*864e5).toISOString()}],history:[599,599,599],now,alerts:{minFlipScore:0,minProfit:-999,minRoi:-999,minAnomalyConfidence:0,minEvidenceQuality:0,minConfirmationScore:0,minDownsideSafetyMarginPct:-999}});
+assert.strictEqual(bad.alertDecision.alert,false);assert(bad.alertDecision.reasons.includes('product-match'));assert.strictEqual(bad.compAudit.matched,0);
+console.log('pilot tests passed');
