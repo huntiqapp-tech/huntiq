@@ -5,15 +5,15 @@ Updated: 2026-08-30
 ## Home Depot — highest clearance priority
 - HUNTIQ goal: store-level clearance history, markdown progression, Penny Watch and retailer verification.
 - Home Depot currently states on its public site that local-store prices may vary from displayed prices and that inventory levels cannot be guaranteed. This reinforces HUNTIQ's storeId + observedAt + price + inventory observation model.
-- Home Depot's public price-check guidance says selecting the local store is how users obtain the most accurate local price and stock context, and it explicitly notes that online and in-store prices can differ. That makes store selection a required verification dimension for Penny Watch rather than optional metadata.
+- Home Depot's public store surfaces expose store identity and store-selection context, while Home Depot's own app guidance says Store Mode can show what is in stock and where an item is located in the selected neighborhood store. This makes store identity and observation freshness core verification fields rather than optional metadata.
 - Public product/store pages are suitable as manual/on-demand verification surfaces, but no general-purpose official consumer pricing API has been identified yet.
 - Do not make the product dependent on unauthorized automated collection. Continue researching permissioned/licensed data, public interfaces suitable for manual/on-demand verification, affiliate/partner options and user-submitted observations.
-- New scoring policy: a Home Depot store observation should be treated as fresh evidence only for a limited window. Community leads decay faster and must not retain the same alert weight as a fresh retailer observation.
+- A Home Depot store observation should be treated as fresh evidence only for a limited window. Community leads decay faster and must not retain the same alert weight as a fresh retailer observation.
 
 ## Best Buy — strongest launch API route
 - Official developer APIs expose product catalog data, pricing, availability, stores and in-store availability; Best Buy says most product information, including price, is updated near real-time.
 - Buying Options API exposes open-box inventory, condition and reduced prices.
-- In-store availability queries can use store ID or postal code and return near-real-time availability for a SKU. This is a good first production source for validating HUNTIQ's price/history/alert pipeline before harder clearance sources are connected.
+- In-store availability queries can combine product/store data. This is a good first production source for validating HUNTIQ's price/history/alert pipeline before harder clearance sources are connected.
 - This remains the strongest candidate for the first live retailer connector once an API key is authorized.
 
 ## Walmart — catalog discovery is real; clearance access is not yet established
@@ -25,8 +25,13 @@ Updated: 2026-08-30
 - Current Lowe's Terms of Use (effective July 15, 2026) prohibit robots/spiders/data-mining processes and specifically define extracting/scraping/gathering site information in connection with resale as prohibited reseller activity.
 - HUNTIQ should use only an authorized/partner/licensed route for Lowe's retail data.
 
+## Target — public research only; no systematic extraction
+- Target's current Terms & Conditions were last updated April 15, 2026.
+- The terms prohibit data extraction, scraping/mining and systematically downloading or storing site content including product listings, descriptions, prices and images, except within the limited license granted by the terms.
+- HUNTIQ should not build a Target price-history collector by scraping Target.com. Keep Target restricted to public/manual research unless an approved or licensed data route is identified.
+
 ## Community signals
 - Reddit and public deal communities may be used as discovery leads.
 - Community posts are never treated as verified prices or inventory by themselves.
-- New evidence policy: source type, verification state and observation age are persisted with every observation. Source confidence decays with age; evidence older than the configured maximum age expires from alert eligibility.
-- Ingestion model: signal -> SKU/store normalization -> retailer verification -> source/freshness confidence -> history/anomaly scoring -> markdown velocity/Penny Probability -> resale comparison -> downside/base profit + ROI -> alert eligibility/priority.
+- Source type, verification state and observation age are persisted with every observation. Source confidence decays with age; evidence older than the configured maximum age expires from alert eligibility.
+- Ingestion model: signal -> SKU/store normalization -> retailer verification -> source/freshness confidence -> history/anomaly scoring -> markdown velocity/Penny Probability -> resale liquidity -> base/downside/risk-adjusted profit + ROI -> capital-efficiency scoring -> alert eligibility/priority.
