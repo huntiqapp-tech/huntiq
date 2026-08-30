@@ -1,1 +1,1 @@
-{"name":"huntiq","private":true,"version":"0.3.0","scripts":{"test":"node tests/engine.test.js && node tests/history-alerts.test.js && node tests/markdown.test.js"}}
+{"name":"huntiq","private":true,"version":"0.4.0","scripts":{"test":"node tests/engine.test.js && node tests/history-alerts.test.js && node tests/markdown.test.js && node tests/quality.test.js"}}
