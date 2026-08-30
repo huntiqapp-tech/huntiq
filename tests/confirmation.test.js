@@ -1,0 +1,13 @@
+const assert=require('assert');
+const C=require('../lib/confirmation');
+const weak=C.confirmationScore([{source:'community',quality:.6,price:29}]);
+assert(weak.score<55,'single community signal should remain weak');
+assert.strictEqual(weak.retailerConfirmed,false);
+const confirmed=C.confirmationScore([{source:'community-verified',quality:.8,price:29},{source:'retailer-page',quality:.95,price:29.97}]);
+assert(confirmed.score>=70,'retailer plus independent community signal should confirm');
+assert.strictEqual(confirmed.retailerConfirmed,true);
+assert(confirmed.independentFamilies>=2);
+const conflict=C.confirmationScore([{source:'retailer-page',quality:.95,price:29},{source:'marketplace-api',quality:.9,price:119},{source:'community',quality:.8,price:29}]);
+assert(conflict.priceAgreement<.5,'conflicting prices should reduce agreement');
+assert(C.confirmationMultiplier(confirmed)>C.confirmationMultiplier(weak));
+console.log('confirmation tests passed');
