@@ -13,6 +13,9 @@ assert.deepStrictEqual(H.priceHistory(rows,{retailer:'Home Depot',sku:'ABC',stor
 assert.strictEqual(H.latest(rows,{retailer:'Home Depot',sku:'ABC',storeId:'100'}).price,99);
 assert.strictEqual(H.normalizeObservation({retailer:'Home Depot',sku:'ABC',price:'49.97'}).price,49.97);
 assert.strictEqual(H.productKey({retailer:'Home Depot',sku:'ABC',storeId:'100'}),'Home Depot|ABC|100');
+const event=H.normalizeMarkdownEvent({retailer:'Home Depot',sku:'ABC',storeId:'100',fromPrice:'99',toPrice:'49.97',dropPct:'49.5',observedAt:'2026-08-30T01:00:00Z'});
+assert.strictEqual(event.toPrice,49.97);
+assert(H.markdownEventKey(event).includes('Home Depot|ABC|100|2026-08-30T01:00:00Z|49.97'));
 const summary=H.summarize(rows,{retailer:'Home Depot',sku:'ABC',storeId:'100'});
 assert.deepStrictEqual({count:summary.count,min:summary.min,max:summary.max},{count:3,min:99,max:499});
 
@@ -23,6 +26,15 @@ assert.strictEqual(decision.alert,true);
 assert(decision.priority>=A.alertPriority(opportunity));
 assert(A.alertFingerprint(withPenny).includes('Home Depot|ABC|100|99'));
 assert(A.alertFingerprint(withPenny).endsWith('p80'));
+const first=A.shouldNotify(withPenny,null,{now:new Date('2026-08-30T03:00:00Z').getTime()});
+assert.strictEqual(first.notify,true);
+assert.strictEqual(first.reason,'new');
+const previous={fingerprint:first.fingerprint,priority:first.decision.priority,notifiedAt:'2026-08-30T02:30:00Z'};
+const duplicate=A.shouldNotify(withPenny,previous,{now:new Date('2026-08-30T03:00:00Z').getTime()});
+assert.strictEqual(duplicate.notify,false);
+assert.strictEqual(duplicate.reason,'duplicate-suppressed');
+const changed={...withPenny,price:79};
+assert.strictEqual(A.shouldNotify(changed,previous,{now:new Date('2026-08-30T03:00:00Z').getTime()}).reason,'state-changed');
 const weak={...opportunity,flipScore:20,economics:{...opportunity.economics,profit:10,roi:5},anomaly:{...opportunity.anomaly,confidence:20},penny:{score:95}};
 assert.strictEqual(A.shouldAlert(weak).alert,false);
 const nonHd={...withPenny,retailer:'Best Buy'};
