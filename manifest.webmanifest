@@ -1,0 +1,10 @@
+{
+  "name":"HUNTIQ — Find. Flip. Profit.",
+  "short_name":"HUNTIQ",
+  "start_url":"./",
+  "display":"standalone",
+  "background_color":"#050807",
+  "theme_color":"#07110f",
+  "description":"Retail deal and resale intelligence.",
+  "icons":[{"src":"./icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]
+}
