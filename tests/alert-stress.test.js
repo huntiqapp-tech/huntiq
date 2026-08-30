@@ -10,6 +10,8 @@ assert.equal(crowded.alert,false);
 assert(crowded.reasons.includes('stress-profit')||crowded.reasons.includes('stress-roi'));
 const multi=opportunity();multi.exitChannels=[{name:'eBay-like',feeRate:.15,shipping:12,confidence:90},{name:'Local',feeRate:0,shipping:0,salePrice:250,confidence:80,holdingDays:3}];
 const multiDecision=alerts.shouldAlert(multi);assert.equal(multiDecision.alert,true);assert(multiDecision.channelAssessment&&multiDecision.channelAssessment.best,'alerts should expose best resale exit');
+const thin=opportunity();thin.exitChannels=[{name:'Thin exit',feeRate:.1,shipping:0,salePrice:130,confidence:95,holdingDays:1}];
+const thinDecision=alerts.shouldAlert(thin,{minExitProfit:0,minExitRoi:0});assert.equal(thinDecision.alert,false);assert(thinDecision.reasons.includes('exit-safety'),'positive profit alone must not pass when break-even safety is too thin');
 const noMargin=opportunity();noMargin.exitChannels=[{name:'Bad venue',feeRate:.5,shipping:100,salePrice:130,confidence:90}];
 const blocked=alerts.shouldAlert(noMargin);assert.equal(blocked.alert,false);assert(blocked.reasons.includes('exit-profit')||blocked.reasons.includes('exit-roi'),'an otherwise strong deal must be blocked when no configured exit preserves margin');
 const first=alerts.shouldNotify(multi,null,{now:Date.now()});assert.equal(first.notify,true);const changed={...multi,exitChannels:[{name:'Local',feeRate:0,shipping:0,salePrice:285,confidence:95,holdingDays:2}]};const second=alerts.shouldNotify(changed,{fingerprint:first.fingerprint,priority:first.decision.priority,notifiedAt:new Date().toISOString()},{now:Date.now()});assert.equal(second.notify,true);assert.equal(second.reason,'state-changed','material exit-channel improvement should refresh the alert');
