@@ -2,13 +2,23 @@ const assert=require('assert');
 const Alerts=require('../lib/alerts');
 const History=require('../lib/history');
 
-const base={retailer:'Home Depot',sku:'X',storeId:'1',price:100,flipScore:90,evidenceQuality:1,observedAt:new Date().toISOString(),anomaly:{confidence:90,label:'Extreme Deal'},economics:{profit:150,roi:100},downsideEconomics:{profit:100,roi:60,safetyMarginPct:30},riskAdjustedEconomics:{profit:100,roi:70},resale:{liquidityScore:80},capitalEfficiency:{score:75},risk:{priceStability:{stabilityScore:90},stabilityAdjustedAnomalyConfidence:90,liquidation:{economics:{profit:80,roi:50}}},purchaseDecision:{headroomPct:25}};
+const base={retailer:'Home Depot',sku:'X',storeId:'1',price:100,flipScore:90,evidenceQuality:1,observedAt:new Date().toISOString(),anomaly:{confidence:90,label:'Extreme Deal'},economics:{profit:150,roi:100},downsideEconomics:{profit:100,roi:60,safetyMarginPct:30},riskAdjustedEconomics:{profit:100,roi:70},resale:{liquidityScore:80,resaleConfidence:85},capitalEfficiency:{score:75},risk:{priceStability:{stabilityScore:90},stabilityAdjustedAnomalyConfidence:90,liquidation:{economics:{profit:80,roi:50}}},purchaseDecision:{headroomPct:25}};
 assert.strictEqual(Alerts.shouldAlert(base).alert,true,'healthy safe-buy headroom should remain alert eligible');
 const thin={...base,purchaseDecision:{headroomPct:2}};
 const thinDecision=Alerts.shouldAlert(thin);
 assert.strictEqual(thinDecision.alert,false,'thin purchase headroom should block alert');
 assert(thinDecision.reasons.includes('purchase-headroom'));
 assert.notStrictEqual(Alerts.alertFingerprint(base),Alerts.alertFingerprint({...base,purchaseDecision:{headroomPct:45}}),'headroom bucket changes should alter fingerprint');
+const strongHistory={...base,priceBaseline:{confidence:88,count:12,duplicateSuppressed:1}};
+const strongDecision=Alerts.shouldAlert(strongHistory);
+assert.strictEqual(strongDecision.alert,true,'independent high-confidence history should preserve alert eligibility');
+assert(strongDecision.confidenceAdjustedEconomics.profit>100,'trusted evidence should preserve most modeled profit');
+const weakHistory={...base,priceBaseline:{confidence:32,count:2,duplicateSuppressed:14}};
+const weakDecision=Alerts.shouldAlert(weakHistory);
+assert.strictEqual(weakDecision.alert,false,'low-confidence polling history must block an alert');
+assert(weakDecision.reasons.includes('history-baseline-confidence'));
+assert(weakDecision.reasons.includes('anomaly-confidence'),'baseline confidence must cap anomaly confidence');
+assert.notStrictEqual(Alerts.alertFingerprint(strongHistory),Alerts.alertFingerprint(weakHistory),'history-confidence bucket changes should alter notification state');
 
 const start=Date.parse('2026-01-01T00:00:00Z');
 const rows=Array.from({length:12},(_,i)=>({retailer:'Home Depot',sku:'SKU',storeId:'1',price:i===7?80:100,inventory:i<9?5:4,verified:true,sourceFamily:'retailer',observedAt:new Date(start+i*3600e3).toISOString()}));
