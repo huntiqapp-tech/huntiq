@@ -1,0 +1,15 @@
+const assert=require('assert');
+const S=require('../lib/stress.js');
+const base={marketValue:500,conservativeValue:470,askingMedian:480,resaleConfidence:90,competitionRatio:.2,momentumPct:3,spreadPct:5,estimatedDaysToSell:10};
+const crowded={...base,resaleConfidence:55,competitionRatio:1.5,momentumPct:-12,spreadPct:20};
+const a=S.resaleStress(base),b=S.resaleStress(crowded);
+assert(a.stressValue<=470&&a.stressValue>400,'healthy market should retain most conservative value');
+assert(b.stressValue<a.stressValue,'crowded weak market must stress resale lower');
+assert(b.totalHaircutPct>a.totalHaircutPct);
+const econ=S.economicsAt({buyPrice:180,salePrice:a.stressValue,feeRate:.135,shipping:25,taxRate:.06,holdingDays:10,holdingCostPerDay:.2});
+assert(econ.profit>0);assert(econ.roi>0);assert(econ.totalCost>180);
+const strong=S.assess({price:180,feeRate:.135,shipping:25,taxRate:.06,holdingCostPerDay:.2,resale:base,priceBaseline:{confidence:88},anomaly:{confidence:92}});
+assert.strictEqual(strong.ready,true);assert.strictEqual(strong.effectiveAnomalyConfidence,88);
+const weak=S.assess({price:350,feeRate:.135,shipping:25,taxRate:.06,holdingCostPerDay:.2,resale:crowded,priceBaseline:{confidence:40},anomaly:{confidence:95}});
+assert.strictEqual(weak.ready,false);assert(weak.reasons.includes('history-confidence'));assert(weak.reasons.includes('stress-profit')||weak.reasons.includes('stress-roi'));
+console.log('HUNTIQ stress tests passed',{healthy:a.stressValue,crowded:b.stressValue,profit:econ.profit,roi:econ.roi});
