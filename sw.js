@@ -1,4 +1,4 @@
-const CACHE='huntiq-public-v14';
+const CACHE='huntiq-public-v15';
 const ASSETS=['./','./index.html','./styles.css','./app.js','./lib/quality.js','./lib/confirmation.js','./lib/engine.js','./lib/risk.js','./lib/decision.js','./lib/history.js','./lib/snapshot-store.js','./lib/alerts.js','./lib/markdown.js','./lib/matching.js','./lib/adapters.js','./lib/pilot.js','./manifest.webmanifest','./icon.svg'];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting()));});
 self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});
