@@ -1,0 +1,14 @@
+const assert=require('assert');
+const outcome=require('../lib/resale-outcome');
+const base={economics:{profit:180,roi:120},risk:{liquidation:{economics:{profit:-20}}},resale:{sold30:30,activeCount:2,resaleConfidence:90}};
+const strong=outcome.assess(base);
+assert(strong.sellThroughProbability>.75,'healthy demand should have strong sell-through');
+assert(strong.expectedProfit>130,'healthy demand should preserve most expected profit');
+const crowded=outcome.assess({...base,resale:{sold30:3,activeCount:25,resaleConfidence:55}});
+assert(crowded.sellThroughProbability<.3,'crowded thin market should have weak sell-through');
+assert(crowded.expectedProfit<strong.expectedProfit,'crowded market should reduce expected profit');
+assert.strictEqual(crowded.status,'weak');
+const improved=outcome.fingerprint({...base,resale:{sold30:12,activeCount:4,resaleConfidence:80}});
+const weak=outcome.fingerprint({...base,resale:{sold30:2,activeCount:20,resaleConfidence:50}});
+assert.notStrictEqual(improved,weak,'material liquidity improvements should change fingerprint');
+console.log('resale outcome tests passed');
