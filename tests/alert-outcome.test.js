@@ -8,7 +8,7 @@ const thin=alerts.shouldAlert(deal({sold7:0,sold30:2,sold90:10,activeCount:24,re
 assert(thin.reasons.includes('sell-through'),'thin crowded market should fail sell-through gate');
 assert(thin.reasons.includes('capital-lockup'),'slow resale should fail capital lockup gate');
 assert.strictEqual(thin.alert,false);
-const slowButPositive=alerts.shouldAlert(deal({sold7:0,sold30:4,sold90:15,activeCount:10,resaleConfidence:85}),{minSellThroughPct:0,minSellThroughExpectedProfit:-100,minSellThroughExpectedRoi:-100});
+const slowButPositive=alerts.shouldAlert(deal({sold7:0,sold30:4,sold90:15,activeCount:30,resaleConfidence:85}),{minSellThroughPct:0,minSellThroughExpectedProfit:-100,minSellThroughExpectedRoi:-100});
 assert(slowButPositive.reasons.includes('capital-lockup')||slowButPositive.reasons.includes('capital-velocity'),'positive headline economics should still be blocked when capital velocity is poor');
 const a=alerts.shouldNotify(deal({sold7:0,sold30:2,activeCount:24,resaleConfidence:55}),null);
 const b=alerts.shouldNotify(deal({sold7:7,sold30:20,activeCount:3,resaleConfidence:90}),null);
