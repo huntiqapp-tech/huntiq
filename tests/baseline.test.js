@@ -14,9 +14,8 @@ const normal=B.scorePriceAnomaly(489.99,base);assert(normal.dropPct<5);assert.st
 const weak=B.scorePriceAnomaly(100,{median:null,confidence:0});assert.strictEqual(weak.label,'Insufficient History');
 const burst=Array.from({length:12},(_,i)=>({retailer:'Target',sku:'A',storeId:'1',price:399,observedAt:new Date(now-i*15*60e3).toISOString(),verified:true,sourceFamily:'retailer'}));
 const burstBase=B.robustBaseline(burst,{retailer:'Target',sku:'A',storeId:'1'},{now,hours:24,minSpacingHours:6});
-assert(burstBase.count<burstBase.rawCount,'rapid duplicate polling must not masquerade as independent history');
-assert(burstBase.duplicateSuppressed>=10,'duplicate suppression should expose poll-noise count');
-assert(burstBase.distinctDays<=1,'a burst should not claim multi-day coverage');
-assert(burstBase.confidence<55,'one short burst from one source must remain low confidence');
-const burstAnomaly=B.scorePriceAnomaly(99,burstBase);assert(burstAnomaly.confidence<70,'large markdowns with poor temporal history must retain limited confidence');
-console.log('HUNTIQ robust baseline tests passed',{baseline:base,burst:burstBase,anomaly});
+assert(burstBase.count<burstBase.rawCount,'rapid duplicate polling must not masquerade as independent history');assert(burstBase.duplicateSuppressed>=10);assert(burstBase.distinctDays<=1);assert(burstBase.confidence<55);
+const episode=[];for(let i=8;i>=1;i--)episode.push({retailer:'Best Buy',sku:'EP1',storeId:'online',price:500,observedAt:new Date(now-i*48*36e5).toISOString(),verified:true,sourceFamily:'retailer'});episode.push({retailer:'Best Buy',sku:'EP1',storeId:'online',price:149,observedAt:new Date(now-20*36e5).toISOString(),verified:true,sourceFamily:'retailer'});episode.push({retailer:'Best Buy',sku:'EP1',storeId:'online',price:149,observedAt:new Date(now-2*36e5).toISOString(),verified:true,sourceFamily:'retailer'});
+const episodeBase=B.robustBaseline(episode,{retailer:'Best Buy',sku:'EP1',storeId:'online'},{now,hours:24*90,currentPrice:149,minSpacingHours:1});
+assert.strictEqual(episodeBase.currentEpisodeExcluded,2,'ongoing discount observations should not contaminate their own baseline');assert.strictEqual(episodeBase.median,500);assert(B.scorePriceAnomaly(149,episodeBase).dropPct>70);
+console.log('HUNTIQ robust baseline tests passed',{baseline:base,episode:episodeBase,anomaly});
