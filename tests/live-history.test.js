@@ -54,6 +54,19 @@ assert.ok(alertResult.notification && alertResult.notification.decision, 'live p
 assert.ok(alertResult.notification.decision.reasons.includes('stale-observation'), 'stale live data must not generate a notification');
 assert.equal(alertResult.notification.notify, false);
 assert.equal(alertResult.opportunity.quantityEconomics.availableUnits, 3, 'alert payload should retain quantity economics');
+assert.ok(alertResult.notification.fingerprint.includes('qty-alert'), 'live alert fingerprints must include quantity state');
+assert.equal(alertResult.notification.quantityDecision.plannedUnits, 3, 'alert payload should expose the quantity gate decision');
+
+const noCashAlert = evaluateLiveAlert(observations[3], {
+  ...options,
+  quantityOptions:{...options.quantityOptions,cashBudget:0},
+  alertOptions:{now:new Date('2026-08-31T13:00:00Z').getTime()}
+});
+assert.equal(noCashAlert.opportunity.quantityEconomics.plannedUnits, 0);
+assert.equal(noCashAlert.quantityDecision.blocked, true, 'no buyable units must block live alerts');
+assert.ok(noCashAlert.quantityDecision.reasons.includes('no-buyable-units'));
+assert.equal(noCashAlert.notification.notify, false);
+assert.equal(noCashAlert.notification.reason, 'quantity-gated', 'profitable unit economics must not alert when the lot cannot be purchased');
 
 const row = toObservationRow(observations[3]);
 assert.equal(row.zipcode, '18360');
