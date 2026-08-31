@@ -6,4 +6,17 @@ const weak=F.assess({fulfillmentConfidence:35,inventory:{quantity:1}});assert.eq
 const unavailable=F.assess({inventory:{quantity:0,verified:true}});assert.equal(unavailable.status,'unavailable');assert.equal(unavailable.confidence,0);
 const econ=F.adjustEconomics({profit:100,roi:80},weak);assert.equal(econ.expectedProfit,35);assert.equal(econ.expectedRoi,28);
 const a=F.fingerprint({fulfillmentConfidence:35,inventory:{quantity:1}});const b=F.fingerprint({fulfillmentConfidence:85,inventory:{quantity:1}});assert.notEqual(a,b,'material fulfillment confidence changes must alter notification state');
+const now='2026-08-31T13:00:00Z';
+const fresh=F.assess({fulfillmentConfidence:90,inventory:{quantity:3,sourceType:'retailer_api',observedAt:'2026-08-31T12:30:00Z'}},{now});
+const old=F.assess({fulfillmentConfidence:90,inventory:{quantity:3,sourceType:'retailer_api',observedAt:'2026-08-30T13:00:00Z'}},{now});
+assert(fresh.confidence>old.confidence,'fresh inventory must outrank stale inventory');
+assert(old.stale,'24-hour-old retailer inventory should be stale');
+assert(old.confidence<20,'stale retailer inventory should be heavily discounted');
+const receipt=F.assess({fulfillmentConfidence:90,inventory:{quantity:1,sourceType:'receipt',observedAt:'2026-08-31T01:00:00Z'}},{now});
+const page=F.assess({fulfillmentConfidence:90,inventory:{quantity:1,sourceType:'retailer_page',observedAt:'2026-08-31T01:00:00Z'}},{now});
+assert(receipt.confidence>page.confidence,'receipt evidence should retain confidence longer than a retailer page snapshot');
+const adjusted=F.adjustEconomics({profit:100,roi:80},old);assert(adjusted.expectedProfit<20);assert.equal(adjusted.inventoryStale,true);
+const freshFp=F.fingerprint({fulfillmentConfidence:90,inventory:{quantity:3,sourceType:'retailer_api',observedAt:'2026-08-31T12:30:00Z'}},{now});
+const oldFp=F.fingerprint({fulfillmentConfidence:90,inventory:{quantity:3,sourceType:'retailer_api',observedAt:'2026-08-30T13:00:00Z'}},{now});
+assert.notEqual(freshFp,oldFp,'inventory aging must alter alert fingerprint state');
 console.log('fulfillment tests passed');
