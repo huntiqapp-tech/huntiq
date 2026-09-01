@@ -17,6 +17,10 @@ This is a living handoff. Agents must update it after meaningful work.
 - [x] Offline service worker.
 - [x] Demo-data disclosure in repository documentation.
 - [x] Persistent agent handoff instructions in `AGENTS.md`.
+- [x] Evidence gate that suppresses alerts when price history, anomaly, resale, freshness, or downside evidence is weak.
+- [x] Capital-velocity engine that normalizes profit/ROI by expected days-to-sell, estimates sell-through/liquidity, and penalizes slow or illiquid alert candidates.
+- [x] Capital-velocity persistence migration (`db/010_capital_velocity.sql`).
+- [x] Target public price/fulfillment normalization research (`docs/retailer-target.md`).
 
 ## CURRENT REALITY
 The public preview is not yet a fully live deal engine. Demonstration opportunity data is intentionally used and should remain clearly labeled until replaced by verified integrations. Private credentials/backend services must not be committed to this public repository.
@@ -29,6 +33,7 @@ The public preview is not yet a fully live deal engine. Demonstration opportunit
 - [ ] Build/validate resale comparable ingestion where lawful and technically available.
 - [ ] Calculate 30 / 60 / 90-day resale metrics from real comparables rather than demo values.
 - [ ] Add confidence/sample-size indicators so sparse resale data is not overstated.
+- [ ] Feed capital-efficiency output into the final customer feed/alert orchestration once real resale velocity inputs are available.
 - [ ] Validate fee, profit and ROI calculations with tests.
 - [ ] Refine Flip Score only after real input data is trustworthy.
 
