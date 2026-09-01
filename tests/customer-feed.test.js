@@ -1,0 +1,14 @@
+const assert=require('assert');
+const {rankOpportunity,buildFeed}=require('../lib/customer-feed');
+const strong={health:{score:91,state:'BUY-READY',components:{freshness:96,resale:82,history:88,riskAdjustedRoi:90},watchReasons:[],blockers:[]},presentation:{badges:['Verified']},deal:{}};
+const thin={health:{score:88,state:'WATCH',components:{freshness:98,resale:79,history:20,riskAdjustedRoi:86},watchReasons:['thin-price-history'],blockers:[]},presentation:{badges:['Verified']},deal:{}};
+const stale={health:{score:95,state:'BLOCKED',components:{freshness:20,resale:90,history:90,riskAdjustedRoi:95},watchReasons:[],blockers:['stale-price']},presentation:{badges:['Verified']},deal:{}};
+assert(rankOpportunity(strong)>=72,'strong verified buy-ready deal should rank as a top pick');
+assert(rankOpportunity(thin)<=64,'thin history must cap feed priority');
+assert.strictEqual(rankOpportunity(stale),0,'blocked deal must have zero feed priority');
+const feed=buildFeed([thin,stale,strong]);
+assert.strictEqual(feed.topPicks.length,1);
+assert.strictEqual(feed.watch.length,1);
+assert.strictEqual(feed.blocked.length,1);
+assert.strictEqual(feed.all[0].health.state,'BUY-READY');
+console.log('customer-feed tests passed');
