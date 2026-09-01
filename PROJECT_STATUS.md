@@ -25,7 +25,10 @@ This is a living handoff. Agents must update it after meaningful work.
 - [x] Strict completed-sale resale aggregation (`lib/resale-history.js`) that calculates shipping-inclusive 30/60/90-day median/mean/quartiles, sample counts, dispersion, match/source quality, freshness-sensitive confidence, trend, preferred market-value window, and evidence sufficiency.
 - [x] Asking/listed/cancelled rows are explicitly excluded from sold-history calculations; active eBay Browse results therefore cannot contaminate completed-sale metrics.
 - [x] Completed-sale comparable persistence migration (`db/011_resale_comparables.sql`) with product/source/time indexes and an evidence-kind constraint.
-- [x] Resale-history tests added and wired into the main test command (`tests/resale-history.test.js`, package version 0.9.20).
+- [x] Integrated opportunity evaluator (`lib/opportunity-evaluator.js`) now connects completed-sale history to channel fee/profit/ROI math and the evidence gate.
+- [x] Downside resale economics use the preferred sold-history window's lower quartile (P25); an otherwise attractive deal is suppressed when risk-adjusted downside ROI turns negative.
+- [x] Integrated evaluator tests verify active asking listings stay out of sold history and negative downside economics suppress alerts (`tests/opportunity-evaluator.test.js`, package version 0.9.21).
+- [x] Best Buy API fit/terms research documented (`docs/best-buy-api-fit-2026-09-01.md`), including near-real-time product pricing/availability, in-store availability capability, Open Box data, published rate limits, 72-hour cache limit and developer-key/terms requirements.
 
 ## CURRENT REALITY
 The public preview is not yet a fully live deal engine. Demonstration opportunity data is intentionally used and should remain clearly labeled until replaced by verified integrations. Private credentials/backend services must not be committed to this public repository.
@@ -38,7 +41,7 @@ The public preview is not yet a fully live deal engine. Demonstration opportunit
 - [ ] Build/validate resale comparable ingestion where lawful and technically available. eBay Browse is validated for active asking-market evidence; production calls require developer credentials.
 - [ ] Select/authorize a legitimate completed-sale data source before replacing demo 30 / 60 / 90-day sold metrics. eBay Marketplace Insights is restricted and not open to new users, so Browse API must not be used as a sold-history substitute.
 - [ ] Connect a legitimate completed-sale ingestion adapter to `lib/resale-history.js` and `db/011_resale_comparables.sql`.
-- [ ] Feed live resale-history confidence/sample-size output into customer presentation and the evidence gate.
+- [ ] Feed `lib/opportunity-evaluator.js` output into the customer PWA/feed once real resale and retailer inputs are available.
 - [ ] Feed capital-efficiency output into the final customer feed/alert orchestration once real resale velocity inputs are available.
 - [ ] Validate fee, profit and ROI calculations with additional marketplace-specific fixtures as production channels are selected.
 - [ ] Refine Flip Score only after real input data is trustworthy.
@@ -60,6 +63,7 @@ Before starting a new parallel agent, record its task here to prevent duplicate 
 - eBay Browse production ingestion requires eBay developer credentials/application token; eBay Partner Network configuration is additionally required before monetized affiliate routing.
 - Exact completed-sale marketplace data access must be selected/validated before claiming 30/60/90-day sold-price history is live.
 - Walmart's public Marketplace Item Search documentation now supports UPC/GTIN/ASIN catalog matching, but it is a Marketplace/seller integration surface rather than evidence that unauthenticated consumer-store pricing or local inventory is available; do not treat it as a live local-deal feed without authorization and license review.
+- Best Buy is technically attractive because its developer API exposes pricing, availability and store-aware product queries, but production use requires a developer key and acceptance of API terms; its published terms also limit caching to 72 hours, so it must not be treated as an unrestricted long-term historical-price warehouse.
 - Production backend/hosting architecture should be chosen based on the live integration requirements; do not migrate simply for novelty.
 
 ## HANDOFF NOTE
