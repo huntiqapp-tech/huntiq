@@ -1,0 +1,14 @@
+'use strict';
+const assert=require('assert');
+const H=require('../lib/history-anomaly');
+const stable=H.assessHistory({currentPrice:40,history:[120,120,118,119,120,120,118,120],asOf:'2026-09-01T18:00:00Z',evidenceQuality:.95});
+assert(stable.baseline>=118&&stable.baseline<=120);
+assert(stable.dropPct>60);
+assert(stable.confidence>=65);
+assert(stable.volatilityScore>=80);
+const thin=H.assessHistory({currentPrice:40,history:[120],evidenceQuality:.95});
+assert(thin.confidence<stable.confidence);
+const volatile=H.assessHistory({currentPrice:40,history:[50,200,70,180,60,150],evidenceQuality:.95});
+assert(volatile.volatilityScore<stable.volatilityScore);
+assert(volatile.confidence<stable.confidence);
+console.log('history-anomaly tests passed');

@@ -3,37 +3,33 @@
 Last established from repository and product handoff: 2026-09-01. This is the living handoff and must be updated after meaningful work.
 
 ## CURRENT VERSION
-- Package: **0.9.25**
+- Package: **0.9.26**
 - Public PWA preview is functional but still intentionally uses demonstration opportunity data until rights-cleared live integrations are connected.
 
 ## DONE / PRESENT
 - Mobile-first installable PWA with offline service worker and browser-persistent watchlist.
-- Opportunity presentation with HUNTIQ/deal scoring, 30/60/90 resale snapshot, profit, ROI, Flip Score, recommendation and alert status.
 - Strict completed-sale resale aggregation in `lib/resale-history.js`; active/asking/cancelled rows cannot contaminate sold-history metrics.
-- Completed-sale persistence in `db/011_resale_comparables.sql`.
+- v0.9.26 resale windows now use match/source-quality-weighted `effectiveCount`; a short window must have enough effective evidence and confidence before becoming the market-value window.
 - Channel economics, risk-adjusted profit/ROI, downside P25 economics and integrated evaluator in `lib/opportunity-evaluator.js`.
-- Evidence gate suppresses weak/stale/unsafe opportunities.
+- v0.9.26 evaluator adds a confidence-adjusted resale price and profit/ROI stress case derived from resale confidence; alerts can no longer rely only on the optimistic preferred median.
+- Evidence gate suppresses weak/stale/unsafe opportunities; v0.9.26 also blocks weak history baselines and negative confidence-adjusted ROI, while thin confidence-adjusted margins become warnings.
 - Capital-velocity engine estimates days-to-sell, sell-through, liquidity, profit/ROI per 30 days and capital-efficiency score.
-- v0.9.24 customer feed incorporates capital efficiency; otherwise-equivalent fast-turn deals outrank slow flips, slow markets are capped and illiquid markets get zero feed priority.
-- PWA strict runtime exposes resale/economics/recommendation/evidence and strict capital velocity.
-- Price-history feature migration `db/013_price_history_features.sql` derives store-isolated previous price, prior-12 baselines, percentage drops and anomaly-oriented history features without blending locations.
-- Integrated evaluator snapshot persistence in `db/012_opportunity_evaluations.sql`.
-- Alert deduplication/cooldown engine in `lib/alert-dedupe.js` prevents repeated unchanged alerts while allowing material price or profit improvements through immediately.
-- Alert delivery audit state in `db/014_alert_delivery_state.sql` stores fingerprints, opportunity/user keys, alert level, economics, sent time and delivery reason.
-- `docs/data-flow-boundaries.md` documents the production chain and hard evidence/licensing boundaries from retailer observation through history, anomaly, resale, economics, velocity, evidence gating, alert delivery and PWA presentation.
-- **v0.9.25:** `lib/retailer-observation-contract.js` validates normalized retailer observations before history promotion, including required identity/price/time/source fields, evidence quality, inventory validity, provenance, stable retailer/store/SKU identity, retention policy and redistribution permission.
-- **v0.9.25:** `db/015_retailer_observation_provenance.sql` adds provider record provenance, retrieval time, retention policy, redistribution permission, verification state and evidence quality to live retailer observations. Unknown/ephemeral rights must not be treated as permission for permanent history.
-- **v0.9.25:** automated tests now include retailer observation contract / persistence-rights regression coverage.
-- Automated tests cover ingestion, history identity/freshness, anomaly lifecycle, fulfillment, economics, quantity, resale history, evaluator, capital velocity, evidence, feed, alerts, matching, price consensus and alert dedupe/feed-velocity behavior.
+- Customer feed incorporates capital efficiency; otherwise-equivalent fast-turn deals outrank slow flips, slow markets are capped and illiquid markets get zero feed priority.
+- `lib/history-anomaly.js` (v0.9.26) computes store-local history baseline, MAD volatility, sample/span strength, freshness, drop size, robust z-like deviation and a history-derived anomaly confidence from actual price series.
+- PWA strict evaluator now consumes that history assessment instead of generic history confidence; thin/volatile histories can reduce strict anomaly confidence. `index.html` loads the module and service-worker cache is `huntiq-public-v43`.
+- `db/013_price_history_features.sql` derives store-isolated sequential price-history features.
+- `db/016_price_anomaly_assessments.sql` persists the exact store-local anomaly/history evidence used by strict evaluation for later audit/tuning.
+- Alert deduplication/cooldown engine prevents repeated unchanged alerts while allowing material price or profit improvements through immediately.
+- Retailer observation contract validates normalized observations and retention/redistribution rights before history promotion.
+- Automated tests cover ingestion, history, anomaly lifecycle, economics, resale, evaluator, evidence, alerts, matching and retailer observation rights. v0.9.26 adds `tests/history-anomaly.test.js`.
 
 ## RETAILER / MARKETPLACE RESEARCH COMPLETED
-- eBay Browse API: valid for active asking-market/product evidence and affiliate-aware links after credentials; **not** valid as completed-sale history. Marketplace Insights is restricted/not open to new users.
-- Walmart Marketplace Item Search: useful for UPC/GTIN/ASIN seller-catalog matching; not evidence of an unrestricted consumer local-price/inventory feed.
-- Best Buy: official developer API exposes pricing, availability, stores/store-aware availability and Open Box data; production requires developer key/terms and published cache limits prevent treating it as unrestricted permanent history.
-- Lowe's: official Developer Hub publicly describes partner product catalog, store-aware pricing, promotions, inventory and availability; production requires organization/app onboarding, credentials and applicable data terms.
-- Home Depot / Staples: public affiliate routes researched; payout metadata must remain separate from HUNTIQ ranking.
-- Ace Hardware: public affiliate program researched in `docs/ace-retailer-fit-2026-09-01.md`; no unrestricted public Ace local-price/inventory API established.
-- **Target:** researched in `docs/target-retailer-fit-2026-09-01.md`. Target launched creator/ambassador commerce programs in May 2026 and exposes Target Plus seller resources, but those seller interfaces are not evidence of unrestricted consumer local-store price/inventory access. HUNTIQ will not build against undocumented/private Target endpoints.
+- eBay Browse API: active asking/product evidence only; not completed-sale history. Marketplace Insights is restricted/not open to new users.
+- Walmart Marketplace Item Search: UPC/GTIN/ASIN seller-catalog matching; not evidence of unrestricted consumer local-price/inventory.
+- Best Buy: official developer API exposes pricing, availability, stores/store-aware availability and Open Box data; production requires developer key/terms and retention limits matter.
+- Lowe's: official Developer Hub describes partner product catalog, store-aware pricing, promotions, inventory and availability; production requires onboarding/credentials/agreements.
+- Home Depot / Staples / Ace / Target monetization and data routes researched with affiliate payout kept separate from ranking.
+- **Menards (v0.9.26):** official Azure API Developer Portal exists and labels production access `Prior Authorization Required`. Menards public pricing also distinguishes everyday checkout price from the 11% mail-in Rebate Credit Check; HUNTIQ must model rebate value separately rather than treating it as instant purchase-price reduction. See `docs/menards-retailer-fit-2026-09-01.md`.
 
 ## HARD PRODUCT / DATA RULES
 - Asking prices are not sold comps.
@@ -42,22 +38,23 @@ Last established from repository and product handoff: 2026-09-01. This is the li
 - Affiliate commission never influences ranking.
 - Demo fixtures remain visibly demo-only.
 - Source-specific retention/redistribution terms control what HUNTIQ may persist historically.
-- Hunter/user scan observations must preserve consent, provenance and verification level separately from retailer/provider observations.
-- A source being technically ingestible does **not** imply HUNTIQ may persist or redistribute it; observation-contract rights metadata must be honored.
+- Hunter/user scan observations preserve consent, provenance and verification separately from retailer/provider observations.
+- A source being technically ingestible does not imply HUNTIQ may persist or redistribute it.
+- Rebates/store credits are not equivalent to cash price reductions unless they are actually applied at checkout.
 
 ## NEXT — HIGH PRIORITY
-- Integrate the retailer observation contract directly into each production-source adapter as those sources become authorized.
-- Continue auditing and strengthening the PWA execution path so strict feed priority and alert-delivery decisions are visible end-to-end.
-- Connect a legitimate completed-sale provider to `lib/resale-history.js` / `db/011_resale_comparables.sql` before claiming live 30/60/90 sold history.
+- Integrate retailer observation contract and history-anomaly assessment directly into each authorized production source adapter.
+- Surface strict history-confidence / confidence-adjusted economics more explicitly in customer deal details.
+- Connect a legitimate completed-sale provider before claiming live 30/60/90 sold history.
 - Persist production evaluator and alert-delivery snapshots once backend storage is connected.
-- Expand marketplace-specific fee/profit/ROI fixtures.
-- Refine anomaly/Flip Score only after real retailer/history inputs are trustworthy.
+- Expand marketplace-specific fee/profit/ROI fixtures and retailer-specific promotion/rebate modeling.
 - Add cloud accounts/watchlists and actual notification delivery after backend/account architecture is selected.
 
 ## EXTERNAL BLOCKERS / USER ACTION ONLY WHEN REQUIRED
 - eBay production calls require developer credentials/application token; affiliate routing additionally requires partner-network setup.
 - Best Buy production integration requires developer key and acceptance of API terms.
 - Lowe's production integration requires partner onboarding, credentials and applicable agreements.
+- Menards production API requires prior authorization.
 - Ace/Home Depot/Staples/Target monetized routing requires relevant program application/acceptance and review of controlling terms.
 - A legitimate completed-sale data source must be selected/authorized before demo sold history can be replaced.
 - Private credentials/backend secrets must never be committed to this public repository.
@@ -66,4 +63,4 @@ Last established from repository and product handoff: 2026-09-01. This is the li
 No active parallel assignment recorded.
 
 ## HANDOFF
-Do not assume an empty project. Read `AGENTS.md`, this file, `README.md`, `docs/data-flow-boundaries.md`, and inspect the repository before changing architecture. Continue from v0.9.25.
+Continue from **v0.9.26**. Read `AGENTS.md`, this file, `README.md`, and `docs/data-flow-boundaries.md` before architecture changes.
