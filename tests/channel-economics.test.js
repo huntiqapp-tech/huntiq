@@ -13,6 +13,10 @@ assert(result.best.roi>0,'best channel should have positive ROI');
 assert(result.best.breakEvenSalePrice>0,'break-even sale price must be calculated');
 assert(result.best.marginOfSafety>0,'profitable channel should have positive resale safety margin');
 assert(result.best.maxBuyPrice>=opportunity.price,'profitable channel should tolerate at least the current buy price');
+assert(result.best.targetRoiCeilings.roi25>result.best.targetRoiCeilings.roi50,'higher target ROI must lower acquisition ceiling');
+assert(result.best.targetRoiCeilings.roi50>result.best.targetRoiCeilings.roi100,'100% target ROI must have the most conservative buy ceiling');
+assert.strictEqual(result.best.acquisitionHeadroom,+((result.best.maxBuyPrice-opportunity.price).toFixed(2)),'headroom should equal break-even ceiling less current price');
+assert.strictEqual(result.best.target50Headroom,+((result.best.targetRoiCeilings.roi50-opportunity.price).toFixed(2)),'50% target headroom should compare current price to the target ceiling');
 assert(result.channels[0].score>=result.channels[1].score,'channels should be ranked by risk-aware exit score');
 const local=result.channels.find(x=>x.name==='Local pickup');
 assert.strictEqual(local.totalFees,0,'zero-fee local sale must not inherit marketplace fees');
@@ -30,10 +34,14 @@ assert(risky.expectedReturnCost>clean.expectedReturnCost,'higher return exposure
 assert(risky.riskAdjustedProfit<clean.riskAdjustedProfit,'return exposure should reduce risk-adjusted profit');
 assert(risky.riskAdjustedRoi<clean.riskAdjustedRoi,'return exposure should reduce risk-adjusted ROI');
 assert(risky.maxBuyPrice<clean.maxBuyPrice,'higher return exposure should lower the safe acquisition price');
+assert(risky.targetRoiCeilings.roi50<clean.targetRoiCeilings.roi50,'return exposure should also lower target-ROI acquisition ceilings');
+const directCeiling=C.maxBuyPriceForTargetRoi({salePrice:200,feeRate:.1,shipping:10,targetRoi:50});
+assert.strictEqual(directCeiling,110,'target ROI ceiling formula should solve backwards from net sale proceeds');
 const returnRank=C.compareChannels(opportunity,[
   {name:'Risky marketplace',salePrice:230,feeRate:.1,shipping:10,confidence:90,returnRate:.4,returnShipping:18,returnHandlingCost:12,nonRefundableFeeRate:.08},
   {name:'Safer marketplace',salePrice:220,feeRate:.1,shipping:10,confidence:90,returnRate:.02,returnShipping:8,returnHandlingCost:3,nonRefundableFeeRate:.01}
 ]);
 assert.strictEqual(returnRank.best.name,'Safer marketplace','channel ranking should prefer stronger expected economics over a higher sticker resale price');
 assert('riskAdjustedProfit' in returnRank.spread,'comparison spread should report risk-adjusted profit separation');
+assert('target50Headroom' in returnRank.spread,'comparison spread should report target-ROI acquisition headroom separation');
 console.log('HUNTIQ channel economics tests passed',{best:result.best,spread:result.spread,returnRiskBest:returnRank.best});
