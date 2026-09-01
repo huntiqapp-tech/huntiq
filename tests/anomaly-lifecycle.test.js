@@ -1,0 +1,15 @@
+const assert=require('assert');
+const L=require('../lib/anomaly-lifecycle.js');
+const fresh=L.lifecycleScore({currentPrice:100,baseline:500,history:[500,500,500,500],anomalyConfidence:80});
+assert.strictEqual(fresh.phase,'fresh-drop');
+assert(fresh.adjustedAnomalyConfidence>80,'fresh one-off drops should retain or slightly increase error suspicion');
+const persistent=L.lifecycleScore({currentPrice:100,baseline:500,history:[500,500,100,100,100,100],anomalyConfidence:80});
+assert.strictEqual(persistent.phase,'persistent-markdown');
+assert(persistent.adjustedAnomalyConfidence<fresh.adjustedAnomalyConfidence,'persistent low prices should reduce pricing-error confidence');
+assert(persistent.alertUrgency<fresh.alertUrgency,'persistent markdowns should be less urgent than fresh drops');
+const clearance=L.lifecycleScore({currentPrice:100,baseline:500,history:[100,100,100,100,100,100,100],anomalyConfidence:80});
+assert.strictEqual(clearance.phase,'established-clearance');
+assert(clearance.adjustedAnomalyConfidence<persistent.adjustedAnomalyConfidence,'established clearance should be least likely to be a transient error');
+assert.strictEqual(L.trailingPersistence([200,100,100],100),3);
+assert(L.near(100,100.5,1),'near-price tolerance should absorb small cent-level drift');
+console.log('HUNTIQ anomaly lifecycle tests passed',{fresh,persistent,clearance});
