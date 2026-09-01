@@ -22,6 +22,10 @@ This is a living handoff. Agents must update it after meaningful work.
 - [x] Capital-velocity persistence migration (`db/010_capital_velocity.sql`).
 - [x] Target public price/fulfillment normalization research (`docs/retailer-target.md`).
 - [x] eBay Browse resale/affiliate integration semantics documented (`docs/resale-ebay.md`), including the hard rule that Browse listings are asking-price evidence and cannot be represented as sold history.
+- [x] Strict completed-sale resale aggregation (`lib/resale-history.js`) that calculates shipping-inclusive 30/60/90-day median/mean/quartiles, sample counts, dispersion, match/source quality, freshness-sensitive confidence, trend, preferred market-value window, and evidence sufficiency.
+- [x] Asking/listed/cancelled rows are explicitly excluded from sold-history calculations; active eBay Browse results therefore cannot contaminate completed-sale metrics.
+- [x] Completed-sale comparable persistence migration (`db/011_resale_comparables.sql`) with product/source/time indexes and an evidence-kind constraint.
+- [x] Resale-history tests added and wired into the main test command (`tests/resale-history.test.js`, package version 0.9.20).
 
 ## CURRENT REALITY
 The public preview is not yet a fully live deal engine. Demonstration opportunity data is intentionally used and should remain clearly labeled until replaced by verified integrations. Private credentials/backend services must not be committed to this public repository.
@@ -33,10 +37,10 @@ The public preview is not yet a fully live deal engine. Demonstration opportunit
 - [ ] Normalize retailer products/opportunities into a common schema.
 - [ ] Build/validate resale comparable ingestion where lawful and technically available. eBay Browse is validated for active asking-market evidence; production calls require developer credentials.
 - [ ] Select/authorize a legitimate completed-sale data source before replacing demo 30 / 60 / 90-day sold metrics. eBay Marketplace Insights is restricted and not open to new users, so Browse API must not be used as a sold-history substitute.
-- [ ] Calculate 30 / 60 / 90-day resale metrics from real completed-sale comparables rather than demo values.
-- [ ] Add confidence/sample-size indicators so sparse resale data is not overstated.
+- [ ] Connect a legitimate completed-sale ingestion adapter to `lib/resale-history.js` and `db/011_resale_comparables.sql`.
+- [ ] Feed live resale-history confidence/sample-size output into customer presentation and the evidence gate.
 - [ ] Feed capital-efficiency output into the final customer feed/alert orchestration once real resale velocity inputs are available.
-- [ ] Validate fee, profit and ROI calculations with tests.
+- [ ] Validate fee, profit and ROI calculations with additional marketplace-specific fixtures as production channels are selected.
 - [ ] Refine Flip Score only after real input data is trustworthy.
 
 ## LATER
@@ -55,6 +59,7 @@ Before starting a new parallel agent, record its task here to prevent duplicate 
 - Exact production retailer-data providers/APIs must be selected based on legality, reliability, cost and coverage.
 - eBay Browse production ingestion requires eBay developer credentials/application token; eBay Partner Network configuration is additionally required before monetized affiliate routing.
 - Exact completed-sale marketplace data access must be selected/validated before claiming 30/60/90-day sold-price history is live.
+- Walmart's public Marketplace Item Search documentation now supports UPC/GTIN/ASIN catalog matching, but it is a Marketplace/seller integration surface rather than evidence that unauthenticated consumer-store pricing or local inventory is available; do not treat it as a live local-deal feed without authorization and license review.
 - Production backend/hosting architecture should be chosen based on the live integration requirements; do not migrate simply for novelty.
 
 ## HANDOFF NOTE
