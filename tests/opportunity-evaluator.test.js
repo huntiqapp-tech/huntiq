@@ -16,10 +16,12 @@ const base={
   const out=evaluateOpportunity({...base,comparables});
   assert.equal(out.resale.completedSaleOnly,true);
   assert.equal(out.resale.comparableCount,9,'active asking listing must not enter sold history');
+  assert.equal(out.resale.activeComparableCount,1,'active listings may inform liquidity without entering sold-price history');
   assert.equal(out.resale.marketValueWindow,30);
   assert(out.economics.riskAdjustedProfit>0);
   assert(out.economics.riskAdjustedRoi>50);
   assert(out.downside.salePrice>0&&out.downside.salePrice<out.resale.marketValue);
+  assert(out.velocity&&out.velocity.capitalEfficiencyScore>=0);
   assert.equal(out.evidence.alertEligible,true);
   assert(['strong-buy','buy'].includes(out.recommendation));
 }
@@ -31,6 +33,15 @@ const base={
   assert(out.economics.downsideRoi<0,'weak lower-quartile exit should expose negative downside ROI');
   assert(out.evidence.blockers.includes('negative-downside-roi'));
   assert.equal(out.evidence.alertEligible,false);
+  assert.equal(out.recommendation,'skip');
+}
+{
+  const comparables=[sold(130,2),sold(128,6),sold(126,12),sold(124,20),sold(122,28),sold(120,45),sold(119,60),sold(118,80)];
+  const out=evaluateOpportunity({...base,comparables,channels:[{name:'slow-market',feeRate:.10,fixedFee:.3,holdingDays:120}]});
+  assert(out.economics.riskAdjustedProfit>0,'headline economics can still be profitable');
+  assert.equal(out.velocity.liquidityBand,'illiquid');
+  assert(out.evidence.blockers.includes('illiquid-resale-market'));
+  assert.equal(out.evidence.alertEligible,false,'illiquid inventory should not trigger a buy alert');
   assert.equal(out.recommendation,'skip');
 }
 console.log('opportunity-evaluator tests passed');
