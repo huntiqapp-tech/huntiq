@@ -1,25 +1,28 @@
 const assert = require('assert');
-const { buildHistoryIndex, priorPrices, observationContext, inventorySourceType, evaluateLiveObservation, evaluateLiveAlert, toObservationRow } = require('../lib/live-history');
+const { buildHistoryIndex, priorObservations, priorPrices, observationContext, inventorySourceType, evaluateLiveObservation, evaluateLiveAlert, toObservationRow } = require('../lib/live-history');
 
 const base = { retailer:'home depot', productId:'319386960', sku:'1007172275', storeId:'4129', source:{provider:'bright-data', rightsClass:'internal-only'} };
 const observations = [
   {...base, price:199, zip:'18360', channel:'local', observedAt:'2026-08-01T12:00:00Z'},
+  {...base, price:189, zip:'18360', channel:'local', observedAt:'2026-08-05T12:00:00Z'},
   {...base, price:149, zip:'18360', channel:'local', observedAt:'2026-08-10T12:00:00Z'},
   {...base, price:99, zip:'18360', channel:'local', observedAt:'2026-08-20T12:00:00Z'},
   {...base, price:49.03, zip:'18360', channel:'local', availability:'in_stock', quantity:3, observedAt:'2026-08-31T12:00:00Z'},
   {...base, storeId:'4188', price:179, zip:'18064', channel:'local', observedAt:'2026-08-20T12:00:00Z'}
 ];
+const current = observations[4];
 const index = buildHistoryIndex(observations);
-assert.deepEqual(priorPrices(observations[3], index), [199,149,99], 'history should contain only prior prices from the same location');
-assert.deepEqual(priorPrices(observations[4], index), [], 'another ZIP/store must not contaminate local history');
+assert.deepEqual(priorPrices(current, index), [199,189,149,99], 'history should contain only prior prices from the same location');
+assert.equal(priorObservations(current, index).length, 4, 'readiness should receive timestamped prior observations, not price-only values');
+assert.deepEqual(priorPrices(observations[5], index), [], 'another ZIP/store must not contaminate local history');
 
-const context = observationContext(observations[3]);
+const context = observationContext(current);
 assert.equal(context.storeId, '4129');
 assert.equal(context.zip, '18360');
 assert.equal(context.observedAt, '2026-08-31T12:00:00Z');
 assert.equal(context.availability, 'in_stock');
 assert.equal(context.quantity, 3);
-assert.equal(inventorySourceType(observations[3]), 'retailer_page', 'Bright Data snapshots should use retailer-page freshness decay');
+assert.equal(inventorySourceType(current), 'retailer_page', 'Bright Data snapshots should use retailer-page freshness decay');
 
 const options = {
   historyIndex:index,
@@ -28,8 +31,8 @@ const options = {
   fulfillmentOptions:{now:'2026-08-31T13:00:00Z'},
   quantityOptions:{cashBudget:500,targetHoldingDays:30,maxMarketShare:.25}
 };
-const result = evaluateLiveObservation(observations[3], options);
-assert.equal(result.priceHistory.length, 3);
+const result = evaluateLiveObservation(current, options);
+assert.equal(result.priceHistory.length, 4);
 assert.equal(result.storeId, '4129', 'store context must survive into scoring and alert fingerprinting');
 assert.equal(result.zip, '18360');
 assert.equal(result.observedAt, '2026-08-31T12:00:00Z', 'freshness guardrails need the source observation timestamp');
@@ -45,30 +48,41 @@ assert.ok(result.quantityEconomics.committedCash > result.economics.totalCost, '
 assert.ok(result.quantityEconomics.lotProfit > result.economics.profit, 'lot planning should expose total profit across available units');
 assert.ok(result.quantityEconomics.expectedProfit > 0, 'inventory confidence should produce probability-adjusted expected profit');
 
-const cashLimited = evaluateLiveObservation(observations[3], {...options, quantityOptions:{...options.quantityOptions,cashBudget:70}});
+const cashLimited = evaluateLiveObservation(current, {...options, quantityOptions:{...options.quantityOptions,cashBudget:70}});
 assert.equal(cashLimited.quantityEconomics.plannedUnits, 1, 'cash budget must cap how many clearance units HUNTIQ recommends buying');
 
-const alertResult = evaluateLiveAlert(observations[3], {...options, alertOptions:{now:new Date('2026-09-05T12:00:00Z').getTime()}});
+const alertResult = evaluateLiveAlert(current, {...options, alertOptions:{now:new Date('2026-09-05T12:00:00Z').getTime()}});
 assert.equal(alertResult.historyKey, 'home depot|319386960|store:4129');
 assert.ok(alertResult.notification && alertResult.notification.decision, 'live pipeline should always produce an alert decision');
 assert.ok(alertResult.notification.decision.reasons.includes('stale-observation'), 'stale live data must not generate a notification');
 assert.equal(alertResult.notification.notify, false);
 assert.equal(alertResult.opportunity.quantityEconomics.availableUnits, 3, 'alert payload should retain quantity economics');
 assert.ok(alertResult.notification.fingerprint.includes('qty-alert'), 'live alert fingerprints must include quantity state');
+assert.ok(alertResult.notification.fingerprint.includes('ready:'), 'live alert fingerprints must include deal-readiness state');
 assert.equal(alertResult.notification.quantityDecision.plannedUnits, 3, 'alert payload should expose the quantity gate decision');
+assert.equal(alertResult.readiness.ready, true, 'adequate local history and economics should pass readiness');
+assert.equal(alertResult.notification.readiness.readinessScore, alertResult.readiness.readinessScore, 'PWA alert payload should expose readiness details');
 
-const noCashAlert = evaluateLiveAlert(observations[3], {
+const noCashAlert = evaluateLiveAlert(current, {
   ...options,
   quantityOptions:{...options.quantityOptions,cashBudget:0},
   alertOptions:{now:new Date('2026-08-31T13:00:00Z').getTime()}
 });
 assert.equal(noCashAlert.opportunity.quantityEconomics.plannedUnits, 0);
+assert.equal(noCashAlert.readiness.ready, true, 'quantity blocking should remain independent from evidence readiness');
 assert.equal(noCashAlert.quantityDecision.blocked, true, 'no buyable units must block live alerts');
 assert.ok(noCashAlert.quantityDecision.reasons.includes('no-buyable-units'));
 assert.equal(noCashAlert.notification.notify, false);
 assert.equal(noCashAlert.notification.reason, 'quantity-gated', 'profitable unit economics must not alert when the lot cannot be purchased');
 
-const row = toObservationRow(observations[3]);
+const thinHistoryIndex = buildHistoryIndex([observations[3], current]);
+const thinAlert = evaluateLiveAlert(current, {...options, historyIndex:thinHistoryIndex, alertOptions:{now:new Date('2026-08-31T13:00:00Z').getTime()}});
+assert.equal(thinAlert.readiness.ready, false, 'thin local price evidence must fail deal readiness');
+assert.ok(thinAlert.readiness.reasons.includes('price-history-thin'));
+assert.equal(thinAlert.notification.notify, false, 'a high-ROI deal must not alert before evidence is ready');
+assert.equal(thinAlert.notification.reason, 'deal-not-ready');
+
+const row = toObservationRow(current);
 assert.equal(row.zipcode, '18360');
 assert.equal(row.store_id, '4129');
 assert.equal(row.provider, 'bright-data');
