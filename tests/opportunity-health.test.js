@@ -1,0 +1,13 @@
+const assert=require('assert');
+const H=require('../lib/opportunity-health');
+const now=Date.parse('2026-09-01T07:00:00Z');
+const timeline=Array.from({length:14},(_,i)=>({price:199-i,observedAt:new Date(now-(13-i)*7*864e5).toISOString()}));
+const base={price:49,observedAt:new Date(now-10*60000).toISOString(),verified:true,timeline,anomaly:{confidence:88,dropPct:68},evidence:{score:.92},comps:{soldCount:28},resale:{resaleConfidence:78,evidenceType:'verified-sold'},economics:{profit:72,roi:147},riskAdjustedEconomics:{roi:84},downsideEconomics:{roi:31},purchaseDecision:{maxBuyPrice:61}};
+let h=H.opportunityHealth(base,{now});
+assert.equal(h.alertReady,true);assert.equal(h.state,'BUY-READY');assert.equal(h.history.label,'Deep');assert.equal(h.resale.soldBacked,true);assert.equal(h.economics.safeBuy,true);
+h=H.opportunityHealth({...base,timeline:timeline.slice(-3)},{now});assert.equal(h.alertReady,false);assert(h.blocks.includes('price-history-thin'));
+h=H.opportunityHealth({...base,resale:{resaleConfidence:80,evidenceType:'active-asks-discounted'},comps:{soldCount:0}},{now});assert.equal(h.alertReady,false);assert(h.blocks.includes('resale-evidence-weak'));
+h=H.opportunityHealth({...base,downsideEconomics:{roi:-9}},{now});assert.equal(h.alertReady,false);assert(h.blocks.includes('economics-unsafe'));
+h=H.opportunityHealth({...base,observedAt:new Date(now-5*3600e3).toISOString()},{now});assert.equal(h.state,'BLOCKED');assert(h.blocks.includes('stale-observation'));
+h=H.opportunityHealth({...base,verified:false},{now});assert.equal(h.alertReady,false);assert(h.blocks.includes('unverified-source'));
+console.log('opportunity-health tests passed');
