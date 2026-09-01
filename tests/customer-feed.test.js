@@ -11,4 +11,14 @@ assert.strictEqual(feed.topPicks.length,1);
 assert.strictEqual(feed.watch.length,1);
 assert.strictEqual(feed.blocked.length,1);
 assert.strictEqual(feed.all[0].health.state,'BUY-READY');
+
+const base={health:{score:90,state:'BUY-READY',components:{freshness:95,resale:90,history:90,riskAdjustedRoi:88},watchReasons:[],blockers:[]},presentation:{badges:['Verified']},deal:{},evidence:{alertLevel:'instant',evidenceScore:90,confidenceBand:'high',blockers:[]}};
+const fast={...base,id:'fast',strictVelocity:{capitalEfficiencyScore:92,liquidityBand:'fast'}};
+const slow={...base,id:'slow',strictVelocity:{capitalEfficiencyScore:42,liquidityBand:'slow'}};
+const illiquid={...base,id:'illiquid',strictVelocity:{capitalEfficiencyScore:20,liquidityBand:'illiquid'}};
+assert(rankOpportunity(fast)>rankOpportunity(slow),'faster capital turns should outrank equally strong slow flips');
+assert.strictEqual(rankOpportunity(illiquid),0,'illiquid resale markets must not receive feed priority');
+const velocityFeed=buildFeed([slow,illiquid,fast]);
+assert.strictEqual(velocityFeed.all[0].id,'fast','capital-efficient deal should lead otherwise equivalent opportunities');
+assert(velocityFeed.blocked.some(x=>x.id==='illiquid'),'illiquid deal should land in blocked bucket');
 console.log('customer-feed tests passed');
