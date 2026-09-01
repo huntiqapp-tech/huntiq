@@ -1,0 +1,14 @@
+const assert=require('assert');
+const P=require('../lib/customer-presentation.js');
+const view=P.presentDeal({retailer:'Home Depot',price:49.03,market:155,profit:72,roi:147,resale:{marketValue:155,liquidityScore:82},riskAdjustedEconomics:{profit:72,roi:147},purchaseDecision:{maxBuyPrice:67},penny:{score:82},lifecycle:{phase:'fresh-drop'}},{score:94,recommendation:'STRONG BUY',state:'BUY-READY',badges:['Verified','Strong Resale'],blockers:[],watchReasons:[]});
+assert.strictEqual(view.score,94);
+assert.strictEqual(view.recommendation,'STRONG BUY');
+assert(view.headline.includes('$49'));
+assert(view.economicsLine.includes('147% ROI'));
+assert(view.badges.includes('82% Penny'));
+assert(view.badges.includes('High Demand'));
+assert(view.maxBuyLine.includes('$67'));
+const wait=P.presentDeal({price:100,market:180,resale:{marketValue:180,liquidityScore:30},purchaseDecision:{maxBuyPrice:120}},{score:61,recommendation:'WAIT',state:'WATCH',badges:[],watchReasons:['thin-price-history']});
+assert.strictEqual(wait.recommendation,'WAIT');
+assert.deepStrictEqual(wait.reasons,['thin-price-history']);
+console.log('HUNTIQ customer presentation tests passed',{view,wait});
