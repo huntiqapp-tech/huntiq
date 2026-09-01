@@ -24,4 +24,16 @@ assert(nearBreakEven.marginOfSafety<10,'thin-margin resale exits should expose l
 const weak=C.evaluateChannel({...opportunity,resale:{...opportunity.resale,resaleConfidence:20}},{name:'Thin comps',feeRate:.1,confidence:20});
 const strong=C.evaluateChannel(opportunity,{name:'Strong comps',feeRate:.1,confidence:95});
 assert(strong.confidenceAdjustedProfit>weak.confidenceAdjustedProfit,'stronger resale evidence should preserve more expected profit');
-console.log('HUNTIQ channel economics tests passed',{best:result.best,spread:result.spread});
+const clean=C.evaluateChannel(opportunity,{name:'Low-return venue',salePrice:215,feeRate:.12,shipping:12,confidence:88,returnRate:.02,returnShipping:8,returnHandlingCost:3,nonRefundableFeeRate:.02});
+const risky=C.evaluateChannel(opportunity,{name:'High-return venue',salePrice:215,feeRate:.12,shipping:12,confidence:88,returnRate:.28,returnShipping:14,returnHandlingCost:8,nonRefundableFeeRate:.05});
+assert(risky.expectedReturnCost>clean.expectedReturnCost,'higher return exposure should raise expected return cost');
+assert(risky.riskAdjustedProfit<clean.riskAdjustedProfit,'return exposure should reduce risk-adjusted profit');
+assert(risky.riskAdjustedRoi<clean.riskAdjustedRoi,'return exposure should reduce risk-adjusted ROI');
+assert(risky.maxBuyPrice<clean.maxBuyPrice,'higher return exposure should lower the safe acquisition price');
+const returnRank=C.compareChannels(opportunity,[
+  {name:'Risky marketplace',salePrice:230,feeRate:.1,shipping:10,confidence:90,returnRate:.4,returnShipping:18,returnHandlingCost:12,nonRefundableFeeRate:.08},
+  {name:'Safer marketplace',salePrice:220,feeRate:.1,shipping:10,confidence:90,returnRate:.02,returnShipping:8,returnHandlingCost:3,nonRefundableFeeRate:.01}
+]);
+assert.strictEqual(returnRank.best.name,'Safer marketplace','channel ranking should prefer stronger expected economics over a higher sticker resale price');
+assert('riskAdjustedProfit' in returnRank.spread,'comparison spread should report risk-adjusted profit separation');
+console.log('HUNTIQ channel economics tests passed',{best:result.best,spread:result.spread,returnRiskBest:returnRank.best});
