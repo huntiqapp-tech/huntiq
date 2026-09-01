@@ -10,6 +10,11 @@ assert(persistent.alertUrgency<fresh.alertUrgency,'persistent markdowns should b
 const clearance=L.lifecycleScore({currentPrice:100,baseline:500,history:[100,100,100,100,100,100,100],anomalyConfidence:80});
 assert.strictEqual(clearance.phase,'established-clearance');
 assert(clearance.adjustedAnomalyConfidence<persistent.adjustedAnomalyConfidence,'established clearance should be least likely to be a transient error');
+const freshAlert=L.alertPolicy(fresh,80),clearanceAlert=L.alertPolicy(clearance,80);
+assert.strictEqual(freshAlert.channel,'immediate','fresh large drops should route to immediate alerts');
+assert.strictEqual(clearanceAlert.channel,'digest','established clearance should move to digest alerts');
+assert(freshAlert.priority>clearanceAlert.priority,'fresh drops should outrank established clearance');
+assert.strictEqual(clearanceAlert.suppressPricingErrorLanguage,true,'persistent clearance should not be described as a likely pricing error');
 assert.strictEqual(L.trailingPersistence([200,100,100],100),3);
 assert(L.near(100,100.5,1),'near-price tolerance should absorb small cent-level drift');
-console.log('HUNTIQ anomaly lifecycle tests passed',{fresh,persistent,clearance});
+console.log('HUNTIQ anomaly lifecycle tests passed',{fresh,persistent,clearance,freshAlert,clearanceAlert});
