@@ -1,0 +1,13 @@
+const assert=require('assert');
+const R=require('../lib/deal-readiness');
+const richHistory=[199,179,149,119,99,79,59,49.03].map((price,i)=>({price,observedAt:new Date(Date.UTC(2026,7,1+i*2)).toISOString()}));
+const strong={anomaly:{confidence:88},resale:{resaleConfidence:72,activeAskOnly:false,unverifiedSoldWindows:false},economics:{roi:105,safetyMarginPct:48},downsideEconomics:{roi:24},riskAdjustedEconomics:{roi:54}};
+const ready=R.evaluateDealReadiness({opportunity:strong,history:richHistory});
+assert.equal(ready.ready,true);assert(ready.readinessScore>=60);assert.equal(ready.history.samples,8);
+const thin=R.evaluateDealReadiness({opportunity:strong,history:[{price:199,observedAt:'2026-08-01T00:00:00Z'},{price:49.03,observedAt:'2026-08-02T00:00:00Z'}]});
+assert.equal(thin.ready,false);assert(thin.reasons.includes('price-history-thin'));
+const risky=R.evaluateDealReadiness({opportunity:{...strong,downsideEconomics:{roi:-8},riskAdjustedEconomics:{roi:9}},history:richHistory});
+assert.equal(risky.ready,false);assert(risky.reasons.includes('downside-roi-negative'));assert(risky.reasons.includes('risk-adjusted-roi-low'));
+const weakComps=R.evaluateDealReadiness({opportunity:{...strong,resale:{resaleConfidence:35,activeAskOnly:true,unverifiedSoldWindows:false}},history:richHistory});
+assert(weakComps.reasons.includes('active-ask-only-comps'));
+console.log('deal-readiness tests passed');
