@@ -1,0 +1,14 @@
+const assert=require('assert');
+global.HuntIQExplain=require('../lib/deal-explain');
+const Card=require('../lib/customer-card');
+const now=Date.parse('2026-09-01T04:00:00Z');
+const base={title:'Tool Kit',retailer:'Home Depot',storeId:'18360',zip:'18360',channel:'store',source:'demo-current',verified:true,observedAt:'2026-09-01T03:50:00Z',price:49.03,economics:{profit:72,roi:147},riskAdjustedEconomics:{roi:88},downsideEconomics:{roi:41},resale:{marketValue:155,resaleConfidence:78},purchaseDecision:{verdict:'STRONG BUY',maxBuyPrice:61},quantityEconomics:{plannedUnits:3,expectedLotProfit:216},readiness:{ready:true,readinessScore:84,reasons:[]}};
+let card=Card.buildCustomerCard(base,{now});
+assert.equal(card.state,'STRONG BUY');assert.equal(card.display.price,'$49');assert.equal(card.display.profit,'$72');assert.equal(card.location,'Store 18360 · ZIP 18360 · store');assert.equal(card.freshness.stale,false);assert.equal(card.source.label,'Verified');assert.equal(card.plannedUnits,3);
+card=Card.buildCustomerCard({...base,readiness:{ready:false,readinessScore:38,reasons:['price-history-thin']}},{now});
+assert.equal(card.state,'WAIT');assert.deepEqual(card.reasons,['price-history-thin']);
+card=Card.buildCustomerCard({...base,quantityDecision:{blocked:true},readiness:{ready:true,readinessScore:84,reasons:[]}},{now});
+assert.equal(card.state,'SKIP');
+card=Card.buildCustomerCard({...base,observedAt:'2026-08-31T23:00:00Z'},{now,staleAfterMinutes:120});
+assert.equal(card.freshness.stale,true);assert.match(card.freshness.label,/Updated 5h ago/);
+console.log('customer-card tests passed');
