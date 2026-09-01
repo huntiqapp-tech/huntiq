@@ -1,21 +1,17 @@
--- HUNTIQ opportunity-health projection for ranked customer feeds.
--- Keeps deterministic scoring outputs queryable without replacing raw observation/history tables.
-ALTER TABLE opportunity_economics ADD COLUMN IF NOT EXISTS huntiq_score INTEGER;
-ALTER TABLE opportunity_economics ADD COLUMN IF NOT EXISTS health_state TEXT;
-ALTER TABLE opportunity_economics ADD COLUMN IF NOT EXISTS customer_recommendation TEXT;
-ALTER TABLE opportunity_economics ADD COLUMN IF NOT EXISTS health_blockers JSONB DEFAULT '[]'::jsonb;
-ALTER TABLE opportunity_economics ADD COLUMN IF NOT EXISTS health_watch_reasons JSONB DEFAULT '[]'::jsonb;
-ALTER TABLE opportunity_economics ADD COLUMN IF NOT EXISTS health_badges JSONB DEFAULT '[]'::jsonb;
-ALTER TABLE opportunity_economics ADD COLUMN IF NOT EXISTS health_components JSONB DEFAULT '{}'::jsonb;
-ALTER TABLE opportunity_economics ADD COLUMN IF NOT EXISTS lifecycle_phase TEXT;
-ALTER TABLE opportunity_economics ADD COLUMN IF NOT EXISTS freshness_score NUMERIC;
+-- HUNTIQ opportunity-health persistence for ranked customer feeds.
+-- This migration targets the SQLite snapshot table created in 005_opportunity_economics.sql.
+ALTER TABLE opportunity_economics_snapshots ADD COLUMN huntiq_score INTEGER;
+ALTER TABLE opportunity_economics_snapshots ADD COLUMN health_state TEXT;
+ALTER TABLE opportunity_economics_snapshots ADD COLUMN customer_recommendation TEXT;
+ALTER TABLE opportunity_economics_snapshots ADD COLUMN health_blockers TEXT NOT NULL DEFAULT '[]';
+ALTER TABLE opportunity_economics_snapshots ADD COLUMN health_watch_reasons TEXT NOT NULL DEFAULT '[]';
+ALTER TABLE opportunity_economics_snapshots ADD COLUMN health_badges TEXT NOT NULL DEFAULT '[]';
+ALTER TABLE opportunity_economics_snapshots ADD COLUMN health_components TEXT NOT NULL DEFAULT '{}';
+ALTER TABLE opportunity_economics_snapshots ADD COLUMN lifecycle_phase TEXT;
+ALTER TABLE opportunity_economics_snapshots ADD COLUMN freshness_score REAL;
 
 CREATE INDEX IF NOT EXISTS idx_opportunity_economics_health_feed
-  ON opportunity_economics (health_state, huntiq_score DESC, observed_at DESC);
+ON opportunity_economics_snapshots(health_state, huntiq_score DESC, computed_at DESC);
 
 CREATE INDEX IF NOT EXISTS idx_opportunity_economics_customer_recommendation
-  ON opportunity_economics (customer_recommendation, huntiq_score DESC);
-
-COMMENT ON COLUMN opportunity_economics.huntiq_score IS '0-99 customer-facing HUNTIQ score derived from anomaly, resale, evidence, history, economics, downside and freshness.';
-COMMENT ON COLUMN opportunity_economics.health_state IS 'BUY-READY, WATCH, or BLOCKED deterministic opportunity-health gate.';
-COMMENT ON COLUMN opportunity_economics.customer_recommendation IS 'STRONG BUY, BUY, WAIT, or SKIP customer presentation state.';
+ON opportunity_economics_snapshots(customer_recommendation, huntiq_score DESC);
