@@ -21,6 +21,7 @@ This is a living handoff. Agents must update it after meaningful work.
 - [x] Capital-velocity engine that normalizes profit/ROI by expected days-to-sell, estimates sell-through/liquidity, and penalizes slow or illiquid alert candidates.
 - [x] Capital-velocity persistence migration (`db/010_capital_velocity.sql`).
 - [x] Target public price/fulfillment normalization research (`docs/retailer-target.md`).
+- [x] eBay Browse resale/affiliate integration semantics documented (`docs/resale-ebay.md`), including the hard rule that Browse listings are asking-price evidence and cannot be represented as sold history.
 
 ## CURRENT REALITY
 The public preview is not yet a fully live deal engine. Demonstration opportunity data is intentionally used and should remain clearly labeled until replaced by verified integrations. Private credentials/backend services must not be committed to this public repository.
@@ -30,8 +31,9 @@ The public preview is not yet a fully live deal engine. Demonstration opportunit
 - [ ] Document the current data model and data-flow boundaries.
 - [ ] Identify and implement the first legitimate live retailer data source with clear freshness/source metadata.
 - [ ] Normalize retailer products/opportunities into a common schema.
-- [ ] Build/validate resale comparable ingestion where lawful and technically available.
-- [ ] Calculate 30 / 60 / 90-day resale metrics from real comparables rather than demo values.
+- [ ] Build/validate resale comparable ingestion where lawful and technically available. eBay Browse is validated for active asking-market evidence; production calls require developer credentials.
+- [ ] Select/authorize a legitimate completed-sale data source before replacing demo 30 / 60 / 90-day sold metrics. eBay Marketplace Insights is restricted and not open to new users, so Browse API must not be used as a sold-history substitute.
+- [ ] Calculate 30 / 60 / 90-day resale metrics from real completed-sale comparables rather than demo values.
 - [ ] Add confidence/sample-size indicators so sparse resale data is not overstated.
 - [ ] Feed capital-efficiency output into the final customer feed/alert orchestration once real resale velocity inputs are available.
 - [ ] Validate fee, profit and ROI calculations with tests.
@@ -51,7 +53,8 @@ Before starting a new parallel agent, record its task here to prevent duplicate 
 
 ## BLOCKERS / OPEN DECISIONS
 - Exact production retailer-data providers/APIs must be selected based on legality, reliability, cost and coverage.
-- Exact resale-marketplace data access must be selected/validated before claiming sold-price history is live.
+- eBay Browse production ingestion requires eBay developer credentials/application token; eBay Partner Network configuration is additionally required before monetized affiliate routing.
+- Exact completed-sale marketplace data access must be selected/validated before claiming 30/60/90-day sold-price history is live.
 - Production backend/hosting architecture should be chosen based on the live integration requirements; do not migrate simply for novelty.
 
 ## HANDOFF NOTE
