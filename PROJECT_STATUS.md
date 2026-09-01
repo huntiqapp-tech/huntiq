@@ -3,7 +3,7 @@
 Last established from repository and product handoff: 2026-09-01. This is the living handoff and must be updated after meaningful work.
 
 ## CURRENT VERSION
-- Package: **0.9.24**
+- Package: **0.9.25**
 - Public PWA preview is functional but still intentionally uses demonstration opportunity data until rights-cleared live integrations are connected.
 
 ## DONE / PRESENT
@@ -14,14 +14,17 @@ Last established from repository and product handoff: 2026-09-01. This is the li
 - Channel economics, risk-adjusted profit/ROI, downside P25 economics and integrated evaluator in `lib/opportunity-evaluator.js`.
 - Evidence gate suppresses weak/stale/unsafe opportunities.
 - Capital-velocity engine estimates days-to-sell, sell-through, liquidity, profit/ROI per 30 days and capital-efficiency score.
-- **v0.9.24:** customer feed now incorporates capital efficiency. Otherwise-equivalent fast-turn deals outrank slow flips; slow markets are capped and illiquid markets get zero feed priority.
+- v0.9.24 customer feed incorporates capital efficiency; otherwise-equivalent fast-turn deals outrank slow flips, slow markets are capped and illiquid markets get zero feed priority.
 - PWA strict runtime exposes resale/economics/recommendation/evidence and strict capital velocity.
 - Price-history feature migration `db/013_price_history_features.sql` derives store-isolated previous price, prior-12 baselines, percentage drops and anomaly-oriented history features without blending locations.
 - Integrated evaluator snapshot persistence in `db/012_opportunity_evaluations.sql`.
-- **v0.9.24:** alert deduplication/cooldown engine in `lib/alert-dedupe.js` prevents repeated unchanged alerts while allowing material price or profit improvements through immediately.
-- **v0.9.24:** alert delivery audit state in `db/014_alert_delivery_state.sql` stores fingerprints, opportunity/user keys, alert level, economics, sent time and delivery reason.
-- **v0.9.24:** `docs/data-flow-boundaries.md` documents the production chain and hard evidence/licensing boundaries from retailer observation through history, anomaly, resale, economics, velocity, evidence gating, alert delivery and PWA presentation.
-- Automated tests cover ingestion, history identity/freshness, anomaly lifecycle, fulfillment, economics, quantity, resale history, evaluator, capital velocity, evidence, feed, alerts, matching, price consensus and new alert dedupe/feed-velocity behavior.
+- Alert deduplication/cooldown engine in `lib/alert-dedupe.js` prevents repeated unchanged alerts while allowing material price or profit improvements through immediately.
+- Alert delivery audit state in `db/014_alert_delivery_state.sql` stores fingerprints, opportunity/user keys, alert level, economics, sent time and delivery reason.
+- `docs/data-flow-boundaries.md` documents the production chain and hard evidence/licensing boundaries from retailer observation through history, anomaly, resale, economics, velocity, evidence gating, alert delivery and PWA presentation.
+- **v0.9.25:** `lib/retailer-observation-contract.js` validates normalized retailer observations before history promotion, including required identity/price/time/source fields, evidence quality, inventory validity, provenance, stable retailer/store/SKU identity, retention policy and redistribution permission.
+- **v0.9.25:** `db/015_retailer_observation_provenance.sql` adds provider record provenance, retrieval time, retention policy, redistribution permission, verification state and evidence quality to live retailer observations. Unknown/ephemeral rights must not be treated as permission for permanent history.
+- **v0.9.25:** automated tests now include retailer observation contract / persistence-rights regression coverage.
+- Automated tests cover ingestion, history identity/freshness, anomaly lifecycle, fulfillment, economics, quantity, resale history, evaluator, capital velocity, evidence, feed, alerts, matching, price consensus and alert dedupe/feed-velocity behavior.
 
 ## RETAILER / MARKETPLACE RESEARCH COMPLETED
 - eBay Browse API: valid for active asking-market/product evidence and affiliate-aware links after credentials; **not** valid as completed-sale history. Marketplace Insights is restricted/not open to new users.
@@ -29,7 +32,8 @@ Last established from repository and product handoff: 2026-09-01. This is the li
 - Best Buy: official developer API exposes pricing, availability, stores/store-aware availability and Open Box data; production requires developer key/terms and published cache limits prevent treating it as unrestricted permanent history.
 - Lowe's: official Developer Hub publicly describes partner product catalog, store-aware pricing, promotions, inventory and availability; production requires organization/app onboarding, credentials and applicable data terms.
 - Home Depot / Staples: public affiliate routes researched; payout metadata must remain separate from HUNTIQ ranking.
-- **Ace Hardware:** public affiliate program researched in `docs/ace-retailer-fit-2026-09-01.md`. Current affiliate page points to Impact while a public participation agreement still references Pepperjam, so controlling onboarding terms must be reviewed before coding monetized routing. No unrestricted public Ace local-price/inventory API was established by this research.
+- Ace Hardware: public affiliate program researched in `docs/ace-retailer-fit-2026-09-01.md`; no unrestricted public Ace local-price/inventory API established.
+- **Target:** researched in `docs/target-retailer-fit-2026-09-01.md`. Target launched creator/ambassador commerce programs in May 2026 and exposes Target Plus seller resources, but those seller interfaces are not evidence of unrestricted consumer local-store price/inventory access. HUNTIQ will not build against undocumented/private Target endpoints.
 
 ## HARD PRODUCT / DATA RULES
 - Asking prices are not sold comps.
@@ -39,10 +43,11 @@ Last established from repository and product handoff: 2026-09-01. This is the li
 - Demo fixtures remain visibly demo-only.
 - Source-specific retention/redistribution terms control what HUNTIQ may persist historically.
 - Hunter/user scan observations must preserve consent, provenance and verification level separately from retailer/provider observations.
+- A source being technically ingestible does **not** imply HUNTIQ may persist or redistribute it; observation-contract rights metadata must be honored.
 
 ## NEXT — HIGH PRIORITY
+- Integrate the retailer observation contract directly into each production-source adapter as those sources become authorized.
 - Continue auditing and strengthening the PWA execution path so strict feed priority and alert-delivery decisions are visible end-to-end.
-- Add a normalized retailer observation adapter contract and fixtures for the first rights-cleared production source.
 - Connect a legitimate completed-sale provider to `lib/resale-history.js` / `db/011_resale_comparables.sql` before claiming live 30/60/90 sold history.
 - Persist production evaluator and alert-delivery snapshots once backend storage is connected.
 - Expand marketplace-specific fee/profit/ROI fixtures.
@@ -53,7 +58,7 @@ Last established from repository and product handoff: 2026-09-01. This is the li
 - eBay production calls require developer credentials/application token; affiliate routing additionally requires partner-network setup.
 - Best Buy production integration requires developer key and acceptance of API terms.
 - Lowe's production integration requires partner onboarding, credentials and applicable agreements.
-- Ace/Home Depot/Staples monetized routing requires program application/acceptance and review of controlling terms.
+- Ace/Home Depot/Staples/Target monetized routing requires relevant program application/acceptance and review of controlling terms.
 - A legitimate completed-sale data source must be selected/authorized before demo sold history can be replaced.
 - Private credentials/backend secrets must never be committed to this public repository.
 
@@ -61,4 +66,4 @@ Last established from repository and product handoff: 2026-09-01. This is the li
 No active parallel assignment recorded.
 
 ## HANDOFF
-Do not assume an empty project. Read `AGENTS.md`, this file, `README.md`, `docs/data-flow-boundaries.md`, and inspect the repository before changing architecture. Continue from v0.9.24.
+Do not assume an empty project. Read `AGENTS.md`, this file, `README.md`, `docs/data-flow-boundaries.md`, and inspect the repository before changing architecture. Continue from v0.9.25.
