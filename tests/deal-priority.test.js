@@ -1,0 +1,14 @@
+const assert=require('assert');
+const P=require('../lib/deal-priority.js');
+assert(P.annualizedRoi(50,30)>P.annualizedRoi(50,90),'same ROI should be more attractive when capital turns faster');
+const fast=P.capitalVelocityScore({riskAdjustedRoi:55,riskAdjustedProfit:90,holdingDays:10,confidence:90,anomalyConfidence:88,acquisitionHeadroom:80,buyPrice:100});
+const slow=P.capitalVelocityScore({riskAdjustedRoi:55,riskAdjustedProfit:90,holdingDays:90,confidence:90,anomalyConfidence:88,acquisitionHeadroom:80,buyPrice:100});
+assert(fast.score>slow.score,'faster sell-through should improve capital velocity score');
+const immediate=P.prioritizeDeal({channel:{riskAdjustedRoi:95,riskAdjustedProfit:180,holdingDays:7,confidence:94,acquisitionHeadroom:120,maxBuyPrice:220},lifecycle:{phase:'fresh-drop',alertUrgency:95,adjustedAnomalyConfidence:92},baseAlertPriority:90});
+assert(['immediate','high'].includes(immediate.tier),'strong fresh anomaly with fast profitable exit should be escalated');
+const clearance=P.prioritizeDeal({channel:{riskAdjustedRoi:95,riskAdjustedProfit:180,holdingDays:7,confidence:94,acquisitionHeadroom:120,maxBuyPrice:220},lifecycle:{phase:'established-clearance',alertUrgency:58,adjustedAnomalyConfidence:60},baseAlertPriority:90});
+assert.notStrictEqual(clearance.tier,'immediate','established clearance should not be mislabeled as immediate pricing-error opportunity');
+assert(clearance.suppressPricingErrorLanguage,'clearance lifecycle should suppress pricing-error wording');
+const loser=P.prioritizeDeal({channel:{riskAdjustedRoi:-8,riskAdjustedProfit:-12,holdingDays:15,confidence:95,acquisitionHeadroom:-10,maxBuyPrice:90},lifecycle:{phase:'fresh-drop',alertUrgency:95,adjustedAnomalyConfidence:95},baseAlertPriority:95});
+assert.strictEqual(loser.tier,'skip','a dramatic anomaly should not alert when exit economics are negative');
+console.log('HUNTIQ deal priority tests passed',{fast,slow,immediate,clearance,loser});
