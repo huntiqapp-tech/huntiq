@@ -1,0 +1,14 @@
+'use strict';
+const assert=require('assert');const {assessResaleEvidence,stressDecision}=require('../lib/resale-evidence-weighting');
+const asOf='2026-09-02T22:00:00Z';const sold=(price,days,match=98,source=98)=>({status:'sold',price,shipping:0,soldAt:new Date(Date.parse(asOf)-days*86400000).toISOString(),matchScore:match,sourceConfidence:source});
+const recent=assessResaleEvidence([sold(100,2),sold(102,7),sold(99,12),sold(101,18),sold(98,25)],{asOf});
+const oldWeak=assessResaleEvidence([sold(140,55,65,60),sold(135,65,65,60),sold(130,75,65,60),sold(125,85,65,60)],{asOf});
+assert(recent.score>oldWeak.score,'recent high-quality sold evidence should score higher');
+assert(recent.effectiveWeight>oldWeak.effectiveWeight);
+assert(recent.recent30WeightShare>90);
+assert(oldWeak.warnings.includes('resale-evidence-skews-old'));
+const future=assessResaleEvidence([sold(100,2),{status:'sold',price:1,soldAt:'2026-09-03T22:00:00Z'}],{asOf});
+assert.equal(future.futureCount,1);assert.notEqual(future.weightedMedian,1,'future comp must not distort weighted market value');
+const stressed=stressDecision({profit:100,roi:80,alertLevel:'instant',assessment:oldWeak});
+assert(stressed.adjustedProfit<100&&stressed.adjustedRoi<80);assert.notEqual(stressed.adjustedAlertLevel,'instant');
+console.log('resale evidence weighting tests passed');
