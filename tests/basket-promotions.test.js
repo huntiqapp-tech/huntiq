@@ -2,6 +2,7 @@ const assert=require('assert');
 const Basket=require('../lib/basket-promotions.js');
 const Acquisition=require('../lib/acquisition-cost.js');
 const Channels=require('../lib/channel-economics.js');
+const EvidenceGate=require('../lib/evidence-gate.js');
 
 const basket={
   basketComplete:true,
@@ -46,6 +47,8 @@ const incompleteAcquisition=Acquisition.evaluateAcquisition({price:100,acquisiti
 assert.strictEqual(incompleteAcquisition.basketAllocatedReward,0);
 assert.strictEqual(incompleteAcquisition.futureCredit,0);
 assert.strictEqual(incompleteAcquisition.basketPromotionStatus,'unknown');
+assert.strictEqual(incompleteAcquisition.promotionStatus,'unknown','combined promotion status should expose basket uncertainty to alert gating');
+assert(incompleteAcquisition.promotionReasons.includes('basket-completeness-unconfirmed'));
 
 const checkoutBasket=Acquisition.evaluateAcquisition({price:100,acquisition:{basketPromotion:{...basket,rewardType:'instant-discount'}}});
 assert.strictEqual(checkoutBasket.checkoutPrice,90,'qualified basket checkout discounts may reduce only the allocated SKU share');
@@ -57,4 +60,9 @@ assert.strictEqual(channel.expectedFutureCredit,10);
 assert.strictEqual(channel.profit,60,'profit may include only the allocated basket reward, never the full basket reward');
 assert.strictEqual(channel.roi,60);
 
-console.log('HUNTIQ basket promotion tests passed',{allocation,incomplete,belowThreshold,acquisition,channel});
+const incompleteChannel=Channels.evaluateChannel({price:100,acquisition:{basketPromotion:{...basket,basketComplete:false}},resale:{marketValue:200,resaleConfidence:95}},{name:'Test',salePrice:200,feeRate:0,confidence:95});
+const gated=EvidenceGate.evaluateEvidence({history:{sampleCount:20,spanDays:60,confidence:95,historyCoverageScore:95},anomaly:{confidence:95,phase:'new'},resale:{confidence:95,resaleFreshnessScore:95,soldCount90:20,soldCount30:10,priceIntegrity:100},economics:{...incompleteChannel,downsideRoi:incompleteChannel.riskAdjustedRoi,confidenceAdjustedRoi:incompleteChannel.riskAdjustedRoi,decisionFloorProfit:incompleteChannel.riskAdjustedProfit,decisionFloorRoi:incompleteChannel.riskAdjustedRoi},deal:{fresh:true,verified:true}});
+assert(gated.warnings.includes('promotion-eligibility-unconfirmed'),'unconfirmed basket rewards should be visible to the alert gate');
+assert.notStrictEqual(gated.alertLevel,'instant','incomplete basket promotion evidence must not create an instant alert');
+
+console.log('HUNTIQ basket promotion tests passed',{allocation,incomplete,belowThreshold,acquisition,channel,gated});
