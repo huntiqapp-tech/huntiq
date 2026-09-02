@@ -1,6 +1,7 @@
 const assert=require('assert');
 const MultiBuy=require('../lib/multibuy-promotions.js');
 const Acquisition=require('../lib/acquisition-cost.js');
+const HistoryAnomaly=require('../lib/history-anomaly.js');
 
 const capped=MultiBuy.evaluateMultiBuyPromotion({
   type:'buy-x-get-y',buyQuantity:2,getQuantity:1,basketComplete:true,maxRedemptions:1,currentItemId:'a',
@@ -49,4 +50,14 @@ const acquisition=Acquisition.evaluateAcquisition({
 assert.strictEqual(acquisition.multiBuyDiscount,30);
 assert.strictEqual(acquisition.checkoutPrice,150,'acquisition economics must honor redemption caps instead of assuming every possible group is discounted');
 
-console.log('HUNTIQ promotion limit tests passed',{capped,uncapped,noMix,mixed,acquisition});
+const anomaly=HistoryAnomaly.assessHistory({currentPrice:60,asOf:'2026-09-02T00:00:00Z',observations:[
+  {price:100,observedAt:'2026-08-01T00:00:00Z',priceBasis:'raw-shelf'},
+  {price:99,observedAt:'2026-08-08T00:00:00Z',priceBasis:'raw-shelf'},
+  {price:98,observedAt:'2026-08-15T00:00:00Z',priceBasis:'raw-shelf'},
+  {price:60,observedAt:'2026-08-22T00:00:00Z',priceBasis:'multibuy-adjusted'}
+]});
+assert.strictEqual(anomaly.sampleCount,3,'promotion-adjusted effective prices must not become historical shelf-price observations');
+assert.strictEqual(anomaly.excludedPromotionObservationCount,1);
+assert(anomaly.baseline>98,'raw shelf baseline should remain near the true observed shelf price');
+
+console.log('HUNTIQ promotion limit tests passed',{capped,uncapped,noMix,mixed,acquisition,anomaly});
