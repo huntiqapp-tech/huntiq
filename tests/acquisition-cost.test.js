@@ -24,6 +24,26 @@ const uncertain=A.evaluateAcquisition({price:100,acquisition:{futureCredit:20,re
 assert(uncertain.expectedFutureCredit<10,'time value should discount a delayed partially-realized future credit');
 assert(uncertain.expectedFutureCredit>0);
 
+const eligibleMemberPromo=A.evaluateAcquisition({price:60,observedAt:'2026-09-01T12:00:00Z',acquisition:{instantDiscount:12,promotion:{membershipRequired:true,memberEligible:true,couponRequired:true,couponApplied:true,minimumSpend:50,expiresAt:'2026-09-02T12:00:00Z'}}});
+assert.strictEqual(eligibleMemberPromo.promotionStatus,'eligible');
+assert.strictEqual(eligibleMemberPromo.checkoutPrice,48,'qualified promotion should affect checkout economics');
+
+const unknownMemberPromo=A.evaluateAcquisition({price:60,observedAt:'2026-09-01T12:00:00Z',acquisition:{instantDiscount:12,promotion:{membershipRequired:true,minimumSpend:50}}});
+assert.strictEqual(unknownMemberPromo.promotionStatus,'unknown');
+assert.strictEqual(unknownMemberPromo.checkoutPrice,60,'unconfirmed member pricing must not inflate ROI');
+assert(unknownMemberPromo.promotionReasons.includes('membership-eligibility-unknown'));
+
+const expiredPromo=A.evaluateAcquisition({price:60,observedAt:'2026-09-03T12:00:00Z',acquisition:{instantDiscount:12,futureCredit:10,promotion:{expiresAt:'2026-09-02T12:00:00Z'}}});
+assert.strictEqual(expiredPromo.promotionStatus,'ineligible');
+assert.strictEqual(expiredPromo.checkoutPrice,60);
+assert.strictEqual(expiredPromo.expectedFutureCredit,0,'expired future rewards must also be excluded');
+assert(expiredPromo.promotionReasons.includes('promotion-expired'));
+
+const nonstackable=A.evaluateAcquisition({price:100,acquisition:{instantDiscount:10,checkoutCredit:5,promotion:{stackable:false}}});
+assert.strictEqual(nonstackable.promotionStatus,'ineligible');
+assert.strictEqual(nonstackable.checkoutPrice,100,'known non-stackable discounts must not be combined in profit math');
+assert(nonstackable.promotionReasons.includes('nonstackable-discounts-combined'));
+
 const channel=C.evaluateChannel({price:100,taxRate:.06,acquisition:{futureCredit:11,futureCreditType:'rebate-credit',realizationRate:1,daysToCredit:0,annualDiscountRate:0},resale:{marketValue:150,resaleConfidence:90}},{name:'Test market',salePrice:150,feeRate:0,confidence:90});
 assert.strictEqual(channel.cashAcquisitionOutlay,106);
 assert.strictEqual(channel.expectedFutureCredit,11);
@@ -32,4 +52,4 @@ assert.strictEqual(channel.profit,55,'profit may include expected rebate value w
 assert.strictEqual(channel.roi,51.9,'cash ROI denominator should remain actual capital paid');
 assert(channel.economicRoi>channel.roi,'economic ROI may separately reflect expected deferred value');
 
-console.log('HUNTIQ acquisition cost tests passed',{plain,instant,rebate,channel});
+console.log('HUNTIQ acquisition cost tests passed',{plain,instant,rebate,eligibleMemberPromo,unknownMemberPromo,expiredPromo,channel});
