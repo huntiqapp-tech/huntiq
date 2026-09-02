@@ -16,9 +16,9 @@ function sold(price,days){return{status:'sold',price,shipping:0,soldAt:new Date(
  assert(!r.blockers.length);assert(['supported','elevated'].includes(r.exposureBand));
 }
 {
- const now=new Date().toISOString();const comps=[sold(100,3),sold(102,8),sold(98,14),sold(101,28),sold(99,42),sold(103,60)];
+ const now=new Date().toISOString();const comps=[sold(100,3),sold(102,38),sold(98,46),sold(101,55),sold(99,70),sold(103,85)];
  const base={opportunity:{price:40,purchaseQuantity:6},comparables:comps,channels:[{name:'eBay',feeRate:.13,shipping:8,holdingDays:21}],history:{sampleCount:12,spanDays:60,confidence:90,historyCoverageScore:95},anomaly:{confidence:90},deal:{fresh:true,verified:true,purchaseQuantity:6},asOf:now};
  const result=Evaluator.evaluateOpportunity(base);
- assert.equal(result.unitExposure.purchaseQuantity,6);assert(result.unitExposure.estimatedLiquidationDays>=90);assert(result.evidence.blockers.some(x=>x.indexOf('multi-unit-resale')===0));assert.equal(result.evidence.alertLevel,'suppressed');
+ assert.equal(result.unitExposure.purchaseQuantity,6);assert(result.unitExposure.estimatedLiquidationDays>=180);assert(result.evidence.blockers.some(x=>x.indexOf('multi-unit-resale')===0));assert.equal(result.evidence.alertLevel,'suppressed');
 }
 console.log('unit-exposure tests passed');
