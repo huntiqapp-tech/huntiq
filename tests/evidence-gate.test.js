@@ -21,4 +21,11 @@ assert.equal(deferred.alertLevel,'standard','an opportunity whose profit depends
 assert(deferred.warnings.includes('includes-deferred-retailer-credit'));
 assert(deferred.warnings.includes('deferred-credit-dependent'));
 assert.equal(deferred.components.deferredCreditDependent,true);
+const promoUnknown=evaluateEvidence({history:{sampleCount:18,spanDays:60,confidence:95},anomaly:{confidence:95,phase:'fresh-drop'},resale:{confidence:95,soldCount90:22},economics:{riskAdjustedRoi:85,riskAdjustedProfit:90,downsideRoi:45,confidenceAdjustedRoi:70,target50Headroom:30,acquisition:{promotionStatus:'unknown',promotionReasons:['membership-eligibility-unknown'],requestedInstantDiscount:20,requestedCheckoutCredit:0,requestedFutureCredit:0}},deal:{verified:true,fresh:true}});
+assert.equal(promoUnknown.alertLevel,'standard','unconfirmed member/coupon pricing must not generate an instant alert');
+assert(promoUnknown.warnings.includes('promotion-eligibility-unconfirmed'));
+assert.equal(promoUnknown.components.promotionUnconfirmed,true);
+const promoIneligible=evaluateEvidence({history:{sampleCount:18,spanDays:60,confidence:95},anomaly:{confidence:95,phase:'fresh-drop'},resale:{confidence:95,soldCount90:22},economics:{riskAdjustedRoi:85,riskAdjustedProfit:90,downsideRoi:45,confidenceAdjustedRoi:70,target50Headroom:30,acquisition:{promotionStatus:'ineligible',promotionReasons:['promotion-expired'],requestedInstantDiscount:20}},deal:{verified:true,fresh:true}});
+assert.equal(promoIneligible.alertLevel,'standard');
+assert(promoIneligible.warnings.includes('promotion-not-applicable'));
 console.log('evidence-gate tests passed');
