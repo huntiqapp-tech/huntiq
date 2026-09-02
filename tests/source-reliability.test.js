@@ -1,0 +1,12 @@
+'use strict';
+const assert=require('assert');
+const S=require('../lib/source-reliability');
+const strong=S.assessSourceReliability([{evidenceQuality:.98,verified:true,direct:true,retentionPolicy:'persistent',redistributionAllowed:true,ageHours:1,identityMatched:true}]);
+assert(strong.score>=90);assert.strictEqual(strong.band,'high');
+const weak=S.assessSourceReliability([{evidenceQuality:.45,verified:false,direct:false,retentionPolicy:'ephemeral',redistributionAllowed:false,ageHours:30,identityMatched:false,conflicted:true}]);
+assert(weak.score<50);assert.strictEqual(weak.band,'weak');
+assert(S.capConfidence(92,strong)>=90);assert(S.capConfidence(92,weak)<50);
+const stressed=S.stressEconomics({riskAdjustedProfit:100,riskAdjustedRoi:60},weak);
+assert(stressed.sourceAdjustedProfit<100);assert(stressed.sourceAdjustedRoi<60);
+const unknown=S.assessSourceReliability([]);assert.strictEqual(unknown.score,50);assert.strictEqual(unknown.band,'unknown');
+console.log('source-reliability tests passed');
