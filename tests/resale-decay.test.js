@@ -1,0 +1,15 @@
+const assert=require('assert');const {evaluateResaleDecay}=require('../lib/resale-decay');
+const partial={horizons:[{days:30,expectedUnitsSold:1},{days:60,expectedUnitsSold:2},{days:90,expectedUnitsSold:3}]};
+const falling=evaluateResaleDecay({marketValue:100,trend30vs90Pct:-20,purchaseQuantity:4,partialLiquidation:partial,resaleConfidence:90});
+assert(falling.monthlyDecayPct>10&&falling.monthlyDecayPct<11,'decline should convert to monthly decay plus confidence stress');
+assert(falling.prices.d30<100&&falling.prices.d60<falling.prices.d30&&falling.prices.d90<falling.prices.d60,'future prices should decay by horizon');
+assert(falling.weightedSalePrice<falling.prices.d30,'slow liquidation should lower weighted sale price');
+assert(falling.weightedDecayPct>15,'multi-month exposure should create material weighted decay');
+assert(falling.warnings.includes('meaningful-resale-price-decay'),'material decay should warn');
+const severe=evaluateResaleDecay({marketValue:200,trend30vs90Pct:-35,purchaseQuantity:6,partialLiquidation:{horizons:[{days:30,expectedUnitsSold:1},{days:60,expectedUnitsSold:2},{days:90,expectedUnitsSold:3}]},resaleConfidence:80});
+assert(severe.blockers.includes('severe-resale-price-decay'),'steep decline plus multi-unit exposure should block');
+const stable=evaluateResaleDecay({marketValue:100,trend30vs90Pct:5,purchaseQuantity:1,partialLiquidation:{horizons:[{days:30,expectedUnitsSold:1},{days:60,expectedUnitsSold:1},{days:90,expectedUnitsSold:1}]},resaleConfidence:100});
+assert.strictEqual(stable.monthlyDecayPct,0);assert.strictEqual(stable.weightedSalePrice,100);assert.strictEqual(stable.blockers.length,0);
+const unknown=evaluateResaleDecay({marketValue:100,purchaseQuantity:3,partialLiquidation:partial,resaleConfidence:100});
+assert(unknown.warnings.includes('resale-decay-trend-unavailable'));
+console.log('resale-decay tests passed');

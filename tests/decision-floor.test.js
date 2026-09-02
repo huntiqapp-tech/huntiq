@@ -8,10 +8,10 @@ const strong=[{evidenceQuality:.99,verified:true,direct:true,sourceType:'officia
 {
   const out=evaluateOpportunity({opportunity:{price:45,taxRate:.06,shipping:6,returnRate:.03,returnShipping:6,returnHandlingCost:2},comparables:[sold(130,2),sold(126,5),sold(128,8),sold(122,12),sold(120,17),sold(118,24),sold(116,35),sold(114,50)],channels:[{name:'eBay',feeRate:.135,fixedFee:.4,holdingDays:18}],history:{sampleCount:16,spanDays:60,confidence:94,historyCoverageScore:96},anomaly:{confidence:93,phase:'new-drop'},deal:{fresh:true,verified:true},sourceEvidence:{retailer:strong,resale:strong},asOf});
   const e=out.economics;
-  const expected=Math.min(e.sourceAdjustedRoi,e.sourceAdjustedDownsideRoi,e.sourceAdjustedConfidenceAdjustedRoi);
+  const expected=Math.min(...[e.sourceAdjustedRoi,e.sourceAdjustedDownsideRoi,e.sourceAdjustedConfidenceAdjustedRoi,e.decayAdjustedRoi].filter(Number.isFinite));
   assert.equal(e.decisionFloorRoi,expected);
   assert(e.decisionFloorProfit<=e.sourceAdjustedProfit);
-  assert.equal(e.decisionFloorBasis,'minimum-of-risk-downside-confidence-source-adjusted');
+  assert.equal(e.decisionFloorBasis,'minimum-of-risk-downside-confidence-source-decay-adjusted');
   assert.equal(out.evidence.components.decisionFloorRoi,e.decisionFloorRoi);
 }
 {
