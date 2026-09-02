@@ -1,0 +1,9 @@
+const assert=require('assert');const {assessEvidenceSufficiency,applyEvidenceFloor}=require('../lib/evidence-sufficiency');
+const strong=assessEvidenceSufficiency({historySampleCount:20,historyConfidence:90,regimeStabilityScore:92,resaleSampleCount:10,resaleEffectiveWeight:6,recent30WeightShare:75,resaleConfidence:88,sourceReliability:95});
+assert(strong.score>=80);assert.equal(strong.blockers.length,0);assert.equal(applyEvidenceFloor({profit:100,roi:100,assessment:strong}).alertEligible,true);
+const thinHistory=assessEvidenceSufficiency({historySampleCount:2,historyConfidence:95,regimeStabilityScore:95,resaleSampleCount:12,resaleEffectiveWeight:7,recent30WeightShare:80,resaleConfidence:95,sourceReliability:95});
+assert(thinHistory.blockers.includes('insufficient-price-history'));assert.equal(applyEvidenceFloor({profit:100,roi:100,assessment:thinHistory}).alertEligible,false);
+const thinResale=assessEvidenceSufficiency({historySampleCount:20,historyConfidence:95,regimeStabilityScore:95,resaleSampleCount:2,resaleEffectiveWeight:1.2,recent30WeightShare:90,resaleConfidence:90,sourceReliability:95});
+assert(thinResale.blockers.includes('insufficient-resale-evidence'));assert.equal(applyEvidenceFloor({profit:80,roi:160,assessment:thinResale}).adjustedAlertLevel,'digest');
+const weakSource=assessEvidenceSufficiency({historySampleCount:20,historyConfidence:90,regimeStabilityScore:90,resaleSampleCount:9,resaleEffectiveWeight:5,recent30WeightShare:70,resaleConfidence:90,sourceReliability:40});
+assert(weakSource.blockers.includes('weak-source-reliability'));console.log('evidence sufficiency tests passed');
