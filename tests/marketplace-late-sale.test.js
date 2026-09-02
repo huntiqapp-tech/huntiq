@@ -1,0 +1,14 @@
+'use strict';
+const assert=require('assert');
+const {evaluateMarketplaceLateSale}=require('../lib/marketplace-late-sale');
+const partialLiquidation={horizons:[{days:30,expectedUnitsSold:1},{days:60,expectedUnitsSold:2},{days:90,expectedUnitsSold:3}]};
+const resaleDecay={prices:{d30:100,d60:95,d90:90}};
+const out=evaluateMarketplaceLateSale({marketplace:'eBay',purchaseQuantity:4,baseSalePrice:105,baseFeeRate:.13,baseFixedFee:.4,baseShipping:8,capitalOutlay:160,resaleDecay,partialLiquidation,assumptions:{feeRateDriftPer30Days:.005,shippingInflationPctPer30Days:3,holdingCostPerUnitPer30Days:1}});
+assert.equal(out.quantity,4);
+assert.deepEqual(out.horizons.map(h=>h.units),[1,1,2]);
+assert(out.horizons[2].feeRate>out.horizons[0].feeRate,'later sales should carry greater fee-rate stress');
+assert(out.horizons[2].shippingPerUnit>out.horizons[0].shippingPerUnit,'later sales should carry shipping inflation');
+assert(out.totalHolding>0,'late inventory should accrue holding cost when configured');
+assert(out.averageStressedSalePrice<105,'decay should lower the average stressed exit');
+assert(out.costDrag>0,'marketplace costs should be visible as explicit drag');
+console.log('marketplace late-sale tests passed');
