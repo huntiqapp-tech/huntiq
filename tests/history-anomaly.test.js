@@ -25,4 +25,7 @@ assert.strictEqual(gappy.label,'gappy-history');
 const duplicateTimes=H.cadenceQuality([{at:1},{at:1},{at:1}],7);
 assert.strictEqual(duplicateTimes.uniqueObservationCount,1);
 assert.strictEqual(duplicateTimes.coverageScore,25);
+const duplicateObservedAt='2026-07-01T00:00:00.000Z';
+const duplicateHistory=H.assessHistory({currentPrice:40,observations:[{price:120,observedAt:duplicateObservedAt},{price:120,observedAt:duplicateObservedAt},{price:120,observedAt:duplicateObservedAt},{price:118,observedAt:'2026-07-08T00:00:00.000Z'}],asOf:'2026-07-09T00:00:00Z'});
+assert.strictEqual(duplicateHistory.sampleCount,2);assert.strictEqual(duplicateHistory.uniqueObservationCount,2);assert.strictEqual(duplicateHistory.duplicateObservationCount,2);
 console.log('history-anomaly tests passed');
