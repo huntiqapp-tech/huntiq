@@ -1,5 +1,6 @@
 const assert=require('assert');
 const C=require('../lib/evidence-concentration');
+const A=require('../lib/evidence-adjustments');
 const asOf='2026-09-02T15:00:00Z';
 const clustered=[
  {soldAt:'2026-08-30T10:00:00Z'},{soldAt:'2026-08-30T11:00:00Z'},{soldAt:'2026-08-30T12:00:00Z'},{soldAt:'2026-08-30T13:00:00Z'},{soldAt:'2026-08-22T10:00:00Z'}
@@ -12,6 +13,11 @@ assert(a.score<b.score,'clustered sales should score lower than distributed sale
 assert(a.warnings.includes('evidence-clustered-on-one-day'));
 assert.strictEqual(b.uniqueDays,5);
 assert.strictEqual(C.capConfidence(92,a),a.score);
+const stressed=A.applyConcentrationStress({profit:100,roi:80,alertLevel:'instant',concentrationScore:a.score});
+assert(stressed.adjustedProfit<100&&stressed.adjustedRoi<80,'clustered evidence must haircut profit and ROI confidence');
+assert.notStrictEqual(stressed.adjustedAlertLevel,'instant','weak clustered evidence must not keep an Instant alert');
+const strong=A.applyConcentrationStress({profit:100,roi:80,alertLevel:'instant',concentrationScore:b.score});
+assert(strong.adjustedProfit>=stressed.adjustedProfit);
 const future=C.assessEvidenceConcentration([{soldAt:'2026-09-03T00:00:00Z'}],{asOf});
 assert.strictEqual(future.sampleCount,0,'future timestamps must not count as evidence');
 console.log('evidence concentration tests passed');
