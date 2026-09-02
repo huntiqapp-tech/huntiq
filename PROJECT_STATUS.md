@@ -3,9 +3,9 @@
 Last established from repository and product handoff: 2026-09-02. This is the living handoff and must be updated after meaningful work.
 
 ## CURRENT VERSION
-- Package: **0.9.41**
+- Package: **0.9.47**
 - Public PWA preview is functional but still intentionally uses demonstration opportunity data until rights-cleared live integrations are connected.
-- Offline cache: **`huntiq-public-v58`**.
+- Offline cache: **`huntiq-public-v63`**.
 
 ## DONE / PRESENT
 - Mobile-first installable PWA with offline service worker and browser-persistent watchlist.
@@ -26,6 +26,7 @@ Last established from repository and product handoff: 2026-09-02. This is the li
 - PWA copy now explains both clock-integrity filtering and marketplace-specific late-sale cost stress; the new engine is loaded and offline-cached.
 - Alert dedupe/cooldown prevents repeated unchanged alerts while allowing material improvements through immediately.
 - Retailer observation contract validates normalized observations and retention/redistribution rights before history promotion.
+- **v0.9.47 RetailerAPI shadow ingestion:** `lib/retailerapi.js` builds server-only authenticated product requests, maps valid fresh provider and cross-retailer cells into HUNTIQ's canonical live-observation format, preserves source provenance, rejects stale/indexing/error/malformed cells, deduplicates observations and hard-disables alerts pending live validation. `scripts/retailerapi-smoke.js` performs a credential-gated lookup and prints only a sanitized summary.
 
 ## DATABASE / AUDIT LAYERS
 - `db/013_price_history_features.sql` — store-isolated sequential price features.
@@ -51,6 +52,7 @@ Last established from repository and product handoff: 2026-09-02. This is the li
 - Automated tests cover ingestion, price history, anomalies, economics, resale, evaluator, evidence, alerts, matching, retailer-observation rights and promotion logic.
 - v0.9.40 added resale-decay unit/integration coverage.
 - **v0.9.41 adds `tests/marketplace-late-sale.test.js`, `tests/marketplace-late-sale-integration.test.js`, and `tests/future-history.test.js`.**
+- **v0.9.47 adds `tests/retailerapi.test.js` and a sanitized provider fixture covering authentication request construction, redaction, errors, freshness rejection, cross-retailer normalization, channel separation, deduplication, provenance and the shadow-mode alert gate.**
 
 ## RETAILER / MARKETPLACE RESEARCH COMPLETED
 - eBay Browse API: active asking/product evidence only; not completed-sale history. Marketplace Insights remains restricted.
@@ -77,8 +79,10 @@ Last established from repository and product handoff: 2026-09-02. This is the li
 - Raw completed-sale evidence remains immutable even when evaluator-level filtering/downweighting excludes it.
 
 ## NEXT — HIGH PRIORITY
-- Add explicit unknown-redemption-limit state when public terms say uses may be limited but do not expose the cap.
-- Add marketplace-specific default stress profiles/fixtures once current fee policies are sourced and legally safe to encode.
+- Make the existing RetailerAPI key available to the trusted server runtime as `RETAILERAPI_KEY` and run `npm run smoke:retailerapi`; never place the key in the public repository or browser bundle.
+- Manually validate a representative RetailerAPI sample against source retailer pages before promoting shadow observations or enabling alerts.
+- Feed validated RetailerAPI observations into the existing live-history pipeline while preserving online versus store/ZIP isolation.
+- Begin the customer-facing PWA pass after validated live observations are available; keep live, cached, delayed and demonstration states explicit.
 - Push source-reliability metadata into each rights-cleared retailer adapter as integrations become available.
 - Connect a legitimate completed-sale provider before claiming live 30/60/90 sold history.
 - Persist production evaluator/history/promotion/resale/source/alert snapshots once backend storage is connected.
