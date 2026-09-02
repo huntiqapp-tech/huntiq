@@ -1,0 +1,13 @@
+const assert=require('assert');
+const {assessMarketplaceUncertainty}=require('../lib/marketplace-uncertainty');
+const stressed=assessMarketplaceUncertainty({capitalOutlay:100,lateSale:{profit:40,roi:40,totalGross:200,totalShipping:20},assumptions:{feeRateUncertainty:.02,shippingUncertaintyPct:25,fixedCostBuffer:1}});
+assert.equal(stressed.feeBuffer,4);
+assert.equal(stressed.shippingBuffer,5);
+assert.equal(stressed.uncertaintyCost,10);
+assert.equal(stressed.conservativeProfit,30);
+assert.equal(stressed.conservativeRoi,30);
+assert(stressed.warnings.includes('marketplace-cost-uncertainty-buffer-applied'));
+const erased=assessMarketplaceUncertainty({capitalOutlay:100,lateSale:{profit:5,roi:5,totalGross:200,totalShipping:20},assumptions:{feeRateUncertainty:.03,shippingUncertaintyPct:50,fixedCostBuffer:2}});
+assert(erased.conservativeProfit<=0);
+assert(erased.blockers.includes('marketplace-cost-uncertainty-erases-profit'));
+console.log('marketplace uncertainty tests passed');
