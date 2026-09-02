@@ -1,0 +1,47 @@
+{
+  "item_id": "19667262713",
+  "upc": "086279195869",
+  "gtin": "00086279195869",
+  "model": "EP-PC8",
+  "title": "Sanitized pressure cooker fixture",
+  "current_price": 100.56,
+  "in_stock": true,
+  "walmart_url": "https://example.test/walmart/product",
+  "_freshness": { "refreshed_at": "2026-09-02T18:00:00Z" },
+  "cross_retailer": {
+    "walmart": {
+      "retailer": "walmart",
+      "status": "ok",
+      "price": 100.56,
+      "url": "https://example.test/walmart/product",
+      "in_stock": true,
+      "_freshness": { "refreshed_at": "2026-09-02T18:00:00Z" }
+    },
+    "target": {
+      "retailer": "target",
+      "status": "stale",
+      "price": 105.99,
+      "url": "https://example.test/target/product",
+      "in_stock": true,
+      "_freshness": { "refreshed_at": "2026-08-20T10:00:00Z" }
+    },
+    "bestbuy": {
+      "retailer": "bestbuy",
+      "status": "indexing",
+      "price": null,
+      "url": "https://example.test/bestbuy/product",
+      "in_stock": null,
+      "_freshness": null
+    },
+    "homedepot": {
+      "retailer": "homedepot",
+      "status": "ok",
+      "price": 98.5,
+      "url": "https://example.test/homedepot/product",
+      "in_stock": false,
+      "_freshness": { "refreshed_at": "2026-09-02T17:30:00Z" }
+    }
+  },
+  "tokens_consumed": 3,
+  "tokens_remaining": 997
+}
