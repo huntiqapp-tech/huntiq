@@ -3,9 +3,9 @@
 Last established from repository and product handoff: 2026-09-02. This is the living handoff and must be updated after meaningful work.
 
 ## CURRENT VERSION
-- Package: **0.9.57**
+- Package: **0.9.58**
 - Public PWA preview is functional but still intentionally uses demonstration opportunity data until rights-cleared live integrations are connected.
-- Offline cache: **`huntiq-public-v70`**.
+- Offline cache: **`huntiq-public-v71`**.
 
 ## DONE / PRESENT
 - Mobile-first installable PWA with offline service worker and browser-persistent watchlist.
@@ -34,6 +34,7 @@ Last established from repository and product handoff: 2026-09-02. This is the li
 - **v0.9.55 inherited mainline:** repeat notifications now require a material opportunity change after merged PR #56. The model is retained, but alerts remain disabled while RetailerAPI validation is incomplete.
 - **v0.9.56 inherited mainline:** break-even resilience scoring is present from merged PR #58. Further scoring and alert-model work is paused while live-data validation is the priority.
 - **v0.9.57 validated customer payload gate:** `lib/customer-live-payload.js` converts only explicitly validated, customer-display-authorized RetailerAPI assessments into a secret-free PWA payload. It preserves provider provenance and store/ZIP/online identity, rejects unauthorized or secret-bearing rows, classifies freshness, and leaves alerts off by default.
+- **v0.9.58 retailer crosscheck gate:** RetailerAPI observations require a fresh, positive-price, product/channel/location-matched retailer crosscheck before permanent history promotion. The higher observed price is retained for conservative acquisition economics, and failed or future-dated crosschecks cannot increase anomaly confidence or enable urgent alerts.
 
 ## DATABASE / AUDIT LAYERS
 - `db/013_price_history_features.sql` — store-isolated sequential price features.
@@ -64,6 +65,7 @@ Last established from repository and product handoff: 2026-09-02. This is the li
 - **v0.9.52 adds `tests/retailerapi-shadow-history.test.js` covering isolated history evaluation, deduplication, audit provenance and hard alert suppression.**
 - **v0.9.53 adds `tests/pwa-data-state.test.js` covering live freshness, cache/delay downgrades, demonstration alert suppression and hidden shadow observations.**
 - **v0.9.57 adds `tests/customer-live-payload.test.js` covering validation evidence, display rights, secret rejection, channel/location preservation, freshness downgrades and default alert suppression.**
+- **v0.9.58 adds `tests/retailer-crosscheck.test.js` and history-promotion integration coverage for price, identity, channel/location, freshness, future-time and required-crosscheck failures.**
 
 ## RETAILER / MARKETPLACE RESEARCH COMPLETED
 - eBay Browse API: active asking/product evidence only; not completed-sale history. Marketplace Insights remains restricted.
