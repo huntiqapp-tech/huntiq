@@ -1,5 +1,6 @@
 'use strict';
 const assert=require('assert');
+const fs=require('fs');
 const {classifyOpportunityData,partitionCustomerOpportunities}=require('../lib/pwa-data-state');
 const asOf='2026-09-03T02:00:00.000Z';
 const demo=classifyOpportunityData({dataOrigin:'demo',observedAt:asOf},{asOf});
@@ -22,4 +23,6 @@ const groups=partitionCustomerOpportunities([
 assert.deepEqual(groups.demo.map(x=>x.id),['demo']);
 assert.deepEqual(groups.live.map(x=>x.id),['live']);
 assert.deepEqual(groups.hidden.map(x=>x.id),['shadow']);
+const appSource=fs.readFileSync(require.resolve('../app.js'),'utf8');
+assert(appSource.includes("d.observedAt||d.timestamp||new Date().toISOString()"),'customer feed must preserve provider observation time for freshness classification');
 console.log('pwa data-state tests passed');
