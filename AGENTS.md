@@ -5,6 +5,11 @@ This file is the persistent handoff for Codex and other coding agents working on
 ## First rule
 Before changing code, read this file, `README.md`, and inspect the existing repository. Treat the repository as the source of truth for what is actually implemented. Do not rebuild or replace working functionality merely because a new agent did not create it.
 
+## Verification-first rule
+For all HUNTIQ work, verify claims against the repository, test results, connected tools, provider documentation, or current public sources before presenting them as fact. Do not infer that a feature, credential, integration, purchase, merge, workflow result, or provider capability exists merely because it was discussed previously. If a fact cannot be verified, label it as unverified or pending instead of guessing. Prefer spending extra time checking over advancing work on a false assumption.
+
+Maintain HUNTIQ continuity through this repository. Important product decisions, architecture rules, integration status, research findings, blockers, and completed work that future Codex/agent sessions need must be recorded in `AGENTS.md`, `PROJECT_STATUS.md`, or the appropriate durable project documentation rather than existing only in conversation history.
+
 ## Product mission
 HUNTIQ is a mobile-first retail deal discovery and resale-intelligence product. The goal is to help a user identify unusually good retail buying opportunities — including major discounts and potential pricing errors — and quickly judge whether an item is worth buying for personal savings or resale.
 
@@ -44,11 +49,13 @@ Never commit API keys, OAuth secrets, access tokens, database credentials, priva
 1. Read `AGENTS.md` and `PROJECT_STATUS.md` if present.
 2. Read `README.md`.
 3. Inspect the relevant existing files and recent implementation before coding.
-4. Preserve working functionality and the approved consumer-facing direction.
-5. Make the smallest coherent change that advances the roadmap.
-6. Run available tests/checks before declaring work complete.
-7. Update `PROJECT_STATUS.md` whenever a meaningful feature is completed, started, blocked or reprioritized.
-8. Record important architecture/product assumptions instead of leaving them only in an agent conversation.
+4. Verify current facts and assumptions before implementing against them.
+5. Preserve working functionality and the approved consumer-facing direction.
+6. Make the smallest coherent change that advances the roadmap.
+7. Run available tests/checks before declaring work complete.
+8. Update `PROJECT_STATUS.md` whenever a meaningful feature is completed, started, blocked or reprioritized.
+9. Record important architecture/product assumptions, integration facts, retailer research, and blockers instead of leaving them only in an agent conversation.
+10. Never fabricate commits, pull requests, CI results, live-data status, credentials, provider access, or completed features.
 
 ## Multi-agent rule
 Do not duplicate another agent's active task. Prefer clearly separated workstreams (for example UI, data ingestion, resale intelligence, testing). Check repository/status state before beginning. If another change has landed, re-read the affected files before continuing.
