@@ -1,0 +1,12 @@
+const assert=require('assert');
+const {assessRetailerCrosscheck}=require('../lib/retailer-crosscheck');
+const asOf='2026-09-03T07:00:00Z';
+let r=assessRetailerCrosscheck({providerPrice:40,corroboratedPrice:40.25,productIdentityMatch:true,channelMatch:true,locationMatch:true,providerObservedAt:'2026-09-03T06:55:00Z',corroboratedObservedAt:'2026-09-03T06:50:00Z',asOf,providerAnomalyConfidence:92,resaleMedian:80});
+assert.equal(r.historyEligible,true);assert.equal(r.eligibleForUrgentAlert,true);assert(r.adjustedAnomalyConfidence>=80);assert(r.expectedRoiPct>25);
+r=assessRetailerCrosscheck({providerPrice:40,corroboratedPrice:50,productIdentityMatch:true,channelMatch:true,locationMatch:true,providerObservedAt:'2026-09-03T06:55:00Z',corroboratedObservedAt:'2026-09-03T06:50:00Z',asOf,providerAnomalyConfidence:95,resaleMedian:90});
+assert.equal(r.historyEligible,false);assert.equal(r.adjustedAnomalyConfidence,0);assert(r.blockers.includes('price-not-corroborated'));
+r=assessRetailerCrosscheck({providerPrice:40,corroboratedPrice:40,productIdentityMatch:true,channelMatch:false,locationMatch:true,providerObservedAt:'2026-09-03T06:55:00Z',corroboratedObservedAt:'2026-09-03T06:50:00Z',asOf,providerAnomalyConfidence:95,resaleMedian:90});
+assert.equal(r.historyEligible,false);assert(r.blockers.includes('channel-mismatch'));
+r=assessRetailerCrosscheck({providerPrice:40,corroboratedPrice:40,productIdentityMatch:true,channelMatch:true,locationMatch:true,providerObservedAt:'2026-09-03T01:00:00Z',corroboratedObservedAt:'2026-09-03T01:00:00Z',asOf,providerAnomalyConfidence:95,resaleMedian:90});
+assert.equal(r.historyEligible,false);assert(r.blockers.includes('crosscheck-stale'));
+console.log('retailer-crosscheck tests passed');
