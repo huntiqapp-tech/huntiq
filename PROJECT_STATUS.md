@@ -3,9 +3,9 @@
 Last established from repository and product handoff: 2026-09-03. This is the living handoff and must be updated after meaningful work.
 
 ## CURRENT VERSION
-- Package: **0.9.59**
+- Package: **0.9.60**
 - Public PWA preview is functional but still intentionally uses demonstration opportunity data until rights-cleared live integrations are connected.
-- Offline cache: **`huntiq-public-v72`**.
+- Offline cache: **`huntiq-public-v73`**.
 
 ## DONE / PRESENT
 - Mobile-first installable PWA with offline service worker and browser-persistent watchlist.
@@ -36,6 +36,7 @@ Last established from repository and product handoff: 2026-09-03. This is the li
 - **v0.9.57 validated customer payload gate:** `lib/customer-live-payload.js` converts only explicitly validated, customer-display-authorized RetailerAPI assessments into a secret-free PWA payload. It preserves provider provenance and store/ZIP/online identity, rejects unauthorized or secret-bearing rows, classifies freshness, and leaves alerts off by default.
 - **v0.9.58 retailer crosscheck gate:** RetailerAPI observations require a fresh, positive-price, product/channel/location-matched retailer crosscheck before permanent history promotion. The higher observed price is retained for conservative acquisition economics, and failed or future-dated crosschecks cannot increase anomaly confidence or enable urgent alerts.
 - **v0.9.59 explainable Deal Coach:** `lib/deal-coach.js` converts existing price-history coverage, anomaly confidence, completed-sale depth, resale confidence, liquidity, base/downside/risk-adjusted economics, safe max-buy and alert state into a deterministic BUY/WATCH/SKIP explanation. `lib/deal-coach-runtime.js` renders the explanation on PWA opportunity cards and forces demonstration rows to WATCH so demo evidence cannot look like a live recommendation.
+- **v0.9.60 inherited mainline:** unified opportunity-confidence scoring and Deal Coach display are present from direct mainline development. Demonstration data remains capped and alert-ineligible. Additional scoring work is paused while the rights-cleared retailer scraper and authenticated RetailerAPI validation are the priority.
 
 ## DATABASE / AUDIT LAYERS
 - `db/013_price_history_features.sql` — store-isolated sequential price features.
@@ -58,6 +59,7 @@ Last established from repository and product handoff: 2026-09-03. This is the li
 - **`db/032_marketplace_late_sale_stress.sql`** — marketplace late-sale fee/shipping/holding stress plus history clock-integrity assessment storage.
 - **`db/038_retailerapi_shadow_history.sql`** — isolated RetailerAPI shadow-history and evaluation audit rows; alert eligibility defaults false.
 - **`db/039_deal_coach_assessments.sql`** — explainability audit snapshot linking the recommendation to price-history, anomaly, resale, economics, safe max-buy and alert evidence.
+- **`db/040_opportunity_confidence.sql`** — unified opportunity-confidence component, weakest-link, blocker and alert-eligibility snapshots.
 
 ## TESTING
 - Automated tests cover ingestion, price history, anomalies, economics, resale, evaluator, evidence, alerts, matching, retailer-observation rights and promotion logic.
@@ -69,6 +71,7 @@ Last established from repository and product handoff: 2026-09-03. This is the li
 - **v0.9.57 adds `tests/customer-live-payload.test.js` covering validation evidence, display rights, secret rejection, channel/location preservation, freshness downgrades and default alert suppression.**
 - **v0.9.58 adds `tests/retailer-crosscheck.test.js` and history-promotion integration coverage for price, identity, channel/location, freshness, future-time and required-crosscheck failures.**
 - **v0.9.59 adds `tests/deal-coach.test.js` covering strong-buy evidence, thin-history/resale cautions, safe-max-buy violations, alert explanation and mandatory demo WATCH behavior.**
+- **v0.9.60 adds `tests/opportunity-confidence.test.js` covering high-confidence live evidence, thin-history and weak-resale blockers, and mandatory demo alert suppression.**
 
 ## RETAILER / MARKETPLACE RESEARCH COMPLETED
 - eBay Browse API: active asking/product evidence only; not completed-sale history. Marketplace Insights remains restricted.
@@ -97,6 +100,7 @@ Last established from repository and product handoff: 2026-09-03. This is the li
 - Customer-facing recommendation explanations must be derived from persisted evaluator evidence and must not upgrade demonstration, stale or validation-only data into a live recommendation.
 
 ## NEXT — HIGH PRIORITY
+- Review and integrate `feat/retailer-scraper-foundation` only after its Home Depot adapter and batch runner are pushed; require canonical observation output, source/terms metadata, channel/location separation, bounded freshness, deduplication and hard-disabled alerts.
 - Make the existing RetailerAPI key available to the trusted server runtime as `RETAILERAPI_KEY` and run `npm run smoke:retailerapi`; never place the key in the public repository or browser bundle.
 - Manually validate a representative RetailerAPI sample against source retailer pages before promoting shadow observations or enabling alerts.
 - Run authenticated RetailerAPI lookup and manual source-page validation, then change only approved observations from `shadow-live` to validated history; keep alerts disabled until that evidence is recorded.
