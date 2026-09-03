@@ -3,7 +3,7 @@
 Last established from repository and product handoff: 2026-09-03. This is the living handoff and must be updated after meaningful work.
 
 ## CURRENT VERSION
-- Package: **0.9.60**
+- Package: **0.9.61**
 - Public PWA preview is functional but still intentionally uses demonstration opportunity data until rights-cleared live integrations are connected.
 - Offline cache: **`huntiq-public-v73`**.
 
@@ -37,6 +37,7 @@ Last established from repository and product handoff: 2026-09-03. This is the li
 - **v0.9.58 retailer crosscheck gate:** RetailerAPI observations require a fresh, positive-price, product/channel/location-matched retailer crosscheck before permanent history promotion. The higher observed price is retained for conservative acquisition economics, and failed or future-dated crosschecks cannot increase anomaly confidence or enable urgent alerts.
 - **v0.9.59 explainable Deal Coach:** `lib/deal-coach.js` converts existing price-history coverage, anomaly confidence, completed-sale depth, resale confidence, liquidity, base/downside/risk-adjusted economics, safe max-buy and alert state into a deterministic BUY/WATCH/SKIP explanation. `lib/deal-coach-runtime.js` renders the explanation on PWA opportunity cards and forces demonstration rows to WATCH so demo evidence cannot look like a live recommendation.
 - **v0.9.60 inherited mainline:** unified opportunity-confidence scoring and Deal Coach display are present from direct mainline development. Demonstration data remains capped and alert-ineligible. Additional scoring work is paused while the rights-cleared retailer scraper and authenticated RetailerAPI validation are the priority.
+- **v0.9.61 retailer scraper foundation:** the server-only scraper accepts only explicit HTTPS host allowlists, rejects credentials/private targets/redirects/zero prices/stale or future observations, and extracts public JSON-LD or price metadata into canonical shadow observations. A dedicated Home Depot adapter preserves store/ZIP/online identity; the batch runner enforces usage limits, deduplicates observations, records bounded raw provenance and hard-disables alerts and redistribution.
 
 ## DATABASE / AUDIT LAYERS
 - `db/013_price_history_features.sql` — store-isolated sequential price features.
@@ -72,6 +73,7 @@ Last established from repository and product handoff: 2026-09-03. This is the li
 - **v0.9.58 adds `tests/retailer-crosscheck.test.js` and history-promotion integration coverage for price, identity, channel/location, freshness, future-time and required-crosscheck failures.**
 - **v0.9.59 adds `tests/deal-coach.test.js` covering strong-buy evidence, thin-history/resale cautions, safe-max-buy violations, alert explanation and mandatory demo WATCH behavior.**
 - **v0.9.60 adds `tests/opportunity-confidence.test.js` covering high-confidence live evidence, thin-history and weak-resale blockers, and mandatory demo alert suppression.**
+- **v0.9.61 adds `tests/retailer-scraper.test.js` covering URL/credential protections, structured-data parsing, canonical provenance, Home Depot channel identity, freshness rejection, batch deduplication and hard alert suppression.**
 
 ## RETAILER / MARKETPLACE RESEARCH COMPLETED
 - eBay Browse API: active asking/product evidence only; not completed-sale history. Marketplace Insights remains restricted.
@@ -98,9 +100,10 @@ Last established from repository and product handoff: 2026-09-03. This is the li
 - Promotion-adjusted effective cost never becomes raw shelf-price history.
 - Raw completed-sale evidence remains immutable even when evaluator-level filtering/downweighting excludes it.
 - Customer-facing recommendation explanations must be derived from persisted evaluator evidence and must not upgrade demonstration, stale or validation-only data into a live recommendation.
+- Public-page scraper output remains ephemeral, non-redistributable and validation-only until retailer terms and retention rights are explicitly approved.
 
 ## NEXT — HIGH PRIORITY
-- Review and integrate `feat/retailer-scraper-foundation` only after its Home Depot adapter and batch runner are pushed; require canonical observation output, source/terms metadata, channel/location separation, bounded freshness, deduplication and hard-disabled alerts.
+- Run the Home Depot adapter only in a trusted server runtime after an explicit terms/robots review; compare sanitized shadow output against the source page before considering any retention or customer display.
 - Make the existing RetailerAPI key available to the trusted server runtime as `RETAILERAPI_KEY` and run `npm run smoke:retailerapi`; never place the key in the public repository or browser bundle.
 - Manually validate a representative RetailerAPI sample against source retailer pages before promoting shadow observations or enabling alerts.
 - Run authenticated RetailerAPI lookup and manual source-page validation, then change only approved observations from `shadow-live` to validated history; keep alerts disabled until that evidence is recorded.
