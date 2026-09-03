@@ -9,9 +9,12 @@ Public policy review only; no account access used.
 - Purchase price adjustments may apply within 14 days, while clearance and timed-event purchases are excluded. Post-purchase adjustments remain contingent value until approved.
 - Store pickup is location-specific; items are not charged until pickup, and customers are notified when an order is actually ready. Product-page pickup eligibility is useful availability evidence but is weaker than a ready-for-pickup confirmation.
 - Current offer terms say selection, prices, offers and exclusions can vary online and by store, quantities may be limited, no rain checks may apply, and discounts often cannot be combined with price matches. Promotion stacking must therefore fail closed unless eligibility is confirmed.
+- Academy's enhanced myAcademy Rewards program launched nationally in March 2026. Threshold rewards such as a reward issued after annual spend are deferred value, not a reduction to the observed shelf price. Card-linked percentage discounts can enter acquisition economics only when the shopper and transaction are actually eligible.
+- Current clearance offer terms identify qualifying clearance endings of .96, .97 or .98. HUNTIQ may use this only as source-attributed clearance-lifecycle evidence while those terms remain current; it must not convert the suffix into a timeless global rule.
 
 ## Public sources reviewed
 - Academy Terms and Conditions: https://www.academy.com/terms-conditions
 - Price Matching + Adjustments: https://www.academy.com/help/price-matching-adjustments
 - Buy Online + Pick Up In Store: https://www.academy.com/buy-online-pick-up-in-store
 - Special Offers Terms: https://www.academy.com/disclaimers
+- myAcademy Rewards launch (2026-03-20): https://investors.academy.com/news-releases/news-release-details/academy-sports-outdoors-launches-new-tiered-myacademyr-rewards
