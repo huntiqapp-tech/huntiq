@@ -1,0 +1,33 @@
+create table if not exists break_even_resilience_assessments (
+  id integer primary key autoincrement,
+  opportunity_id text not null,
+  retailer text,
+  sku text,
+  store_id text,
+  assessed_at text not null,
+  sale_price real not null,
+  acquisition_cost real not null,
+  net_profit real not null,
+  roi_pct real not null,
+  required_sale_price real not null,
+  sale_price_cushion real not null,
+  sale_price_cushion_pct real not null,
+  max_acquisition_cost real not null,
+  acquisition_cost_cushion real not null,
+  acquisition_cost_cushion_pct real not null,
+  anomaly_confidence real,
+  resale_confidence real,
+  evidence_confidence real,
+  weakest_confidence real not null,
+  resilience_score real not null,
+  resilience_band text not null,
+  min_net_profit real not null,
+  min_roi_pct real not null,
+  alert_state text not null,
+  alert_eligible integer not null check (alert_eligible in (0,1)),
+  warnings_json text not null default '[]',
+  blockers_json text not null default '[]',
+  created_at text not null default current_timestamp
+);
+create index if not exists idx_break_even_resilience_opportunity_time on break_even_resilience_assessments(opportunity_id, assessed_at desc);
+create index if not exists idx_break_even_resilience_alert on break_even_resilience_assessments(alert_eligible, resilience_score, assessed_at desc);
