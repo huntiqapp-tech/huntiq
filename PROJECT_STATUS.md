@@ -3,9 +3,9 @@
 Last established from repository and product handoff: 2026-09-02. This is the living handoff and must be updated after meaningful work.
 
 ## CURRENT VERSION
-- Package: **0.9.47**
+- Package: **0.9.52**
 - Public PWA preview is functional but still intentionally uses demonstration opportunity data until rights-cleared live integrations are connected.
-- Offline cache: **`huntiq-public-v63`**.
+- Offline cache: **`huntiq-public-v66`**.
 
 ## DONE / PRESENT
 - Mobile-first installable PWA with offline service worker and browser-persistent watchlist.
@@ -27,6 +27,8 @@ Last established from repository and product handoff: 2026-09-02. This is the li
 - Alert dedupe/cooldown prevents repeated unchanged alerts while allowing material improvements through immediately.
 - Retailer observation contract validates normalized observations and retention/redistribution rights before history promotion.
 - **v0.9.47 RetailerAPI shadow ingestion:** `lib/retailerapi.js` builds server-only authenticated product requests, maps valid fresh provider and cross-retailer cells into HUNTIQ's canonical live-observation format, preserves source provenance, rejects stale/indexing/error/malformed cells, deduplicates observations and hard-disables alerts pending live validation. `scripts/retailerapi-smoke.js` performs a credential-gated lookup and prints only a sanitized summary.
+- **v0.9.48-v0.9.51 safety integration:** permanent-history promotion requires validated rights/freshness/reliability, recent resale evidence is time-weighted, cross-domain evidence sufficiency constrains alerts, and marketplace cost/ROI floors are enforced in the opportunity decision floor.
+- **v0.9.52 RetailerAPI shadow history bridge:** accepted adapter output can now enter the existing live-history/opportunity evaluator in an isolated `shadow-live` state. Repeated observations are deduplicated, provider provenance remains attached, audit rows remain non-redistributable by default, and notifications are unconditionally suppressed.
 
 ## DATABASE / AUDIT LAYERS
 - `db/013_price_history_features.sql` — store-isolated sequential price features.
@@ -47,12 +49,14 @@ Last established from repository and product handoff: 2026-09-02. This is the li
 - `db/030_history_observation_dedup_assessments.sql` — raw versus unique timestamp counts and duplicate exclusions.
 - `db/031_resale_decay_assessments.sql` — resale trend, future 30/60/90 stress prices, weighted exit price, decay score and warnings/blockers.
 - **`db/032_marketplace_late_sale_stress.sql`** — marketplace late-sale fee/shipping/holding stress plus history clock-integrity assessment storage.
+- **`db/038_retailerapi_shadow_history.sql`** — isolated RetailerAPI shadow-history and evaluation audit rows; alert eligibility defaults false.
 
 ## TESTING
 - Automated tests cover ingestion, price history, anomalies, economics, resale, evaluator, evidence, alerts, matching, retailer-observation rights and promotion logic.
 - v0.9.40 added resale-decay unit/integration coverage.
 - **v0.9.41 adds `tests/marketplace-late-sale.test.js`, `tests/marketplace-late-sale-integration.test.js`, and `tests/future-history.test.js`.**
 - **v0.9.47 adds `tests/retailerapi.test.js` and a sanitized provider fixture covering authentication request construction, redaction, errors, freshness rejection, cross-retailer normalization, channel separation, deduplication, provenance and the shadow-mode alert gate.**
+- **v0.9.52 adds `tests/retailerapi-shadow-history.test.js` covering isolated history evaluation, deduplication, audit provenance and hard alert suppression.**
 
 ## RETAILER / MARKETPLACE RESEARCH COMPLETED
 - eBay Browse API: active asking/product evidence only; not completed-sale history. Marketplace Insights remains restricted.
@@ -81,7 +85,7 @@ Last established from repository and product handoff: 2026-09-02. This is the li
 ## NEXT — HIGH PRIORITY
 - Make the existing RetailerAPI key available to the trusted server runtime as `RETAILERAPI_KEY` and run `npm run smoke:retailerapi`; never place the key in the public repository or browser bundle.
 - Manually validate a representative RetailerAPI sample against source retailer pages before promoting shadow observations or enabling alerts.
-- Feed validated RetailerAPI observations into the existing live-history pipeline while preserving online versus store/ZIP isolation.
+- Run authenticated RetailerAPI lookup and manual source-page validation, then change only approved observations from `shadow-live` to validated history; keep alerts disabled until that evidence is recorded.
 - Begin the customer-facing PWA pass after validated live observations are available; keep live, cached, delayed and demonstration states explicit.
 - Push source-reliability metadata into each rights-cleared retailer adapter as integrations become available.
 - Connect a legitimate completed-sale provider before claiming live 30/60/90 sold history.
