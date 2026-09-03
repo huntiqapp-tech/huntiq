@@ -1,6 +1,7 @@
 'use strict';
 const assert=require('assert');
 const {assessOpportunityRange,percentile}=require('../lib/opportunity-range');
+const {scoreOpportunityConfidence}=require('../lib/opportunity-confidence');
 assert.equal(percentile([100,200,300],.5),200);
 const strong=assessOpportunityRange({price:60,feeRate:.13,shipping:8,soldPrices:[120,125,130,132,135,138,140,145],anomaly:{dropPct:55,confidence:84},dataOrigin:'live'});
 assert(strong.conservative.roi>40);assert(strong.base.roi>50);assert.equal(strong.alertEligible,true);assert.equal(strong.blockers.length,0);
@@ -8,6 +9,9 @@ const volatile=assessOpportunityRange({price:70,feeRate:.13,shipping:10,soldPric
 assert(volatile.blockers.includes('high sold-price dispersion'));assert.equal(volatile.alertEligible,false);
 const thin=assessOpportunityRange({price:40,feeRate:.12,shipping:8,soldPrices:[80,82,84],anomaly:{dropPct:70,confidence:90},dataOrigin:'live'});
 assert(thin.blockers.includes('insufficient sold-price depth'));assert.equal(thin.alertEligible,false);
+const base={confidence:92,historyAssessment:{historyCoverageScore:90},resale:{resaleConfidence:92,liquidityScore:85,soldCount:24},economics:{roi:80},downsideEconomics:{roi:40},alert:{alert:true},dataOrigin:'live'};
+assert.equal(scoreOpportunityConfidence({...base,opportunityRange:strong}).alertEligible,true);
+const gated=scoreOpportunityConfidence({...base,opportunityRange:volatile});assert.equal(gated.alertEligible,false);assert(gated.blockers.includes('high sold-price dispersion'));
 const demo=assessOpportunityRange({price:10,soldPrices:[100,100,100,100,100,100],anomaly:{dropPct:90,confidence:99},dataOrigin:'demo'});
 assert(demo.blockers.includes('demonstration data'));assert.equal(demo.alertEligible,false);
 console.log('opportunity-range tests passed');
