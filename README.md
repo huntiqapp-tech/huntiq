@@ -20,5 +20,7 @@ The server-only RetailerAPI shadow adapter is documented in `docs/retailerapi-li
 
 RetailerAPI shadow batches can now flow through the existing live-history and opportunity evaluation path without entering permanent history or enabling notifications. The bridge preserves provider provenance, deduplicates repeated observations, keeps online/store/ZIP history isolated, and emits auditable shadow-history rows for later server-side persistence.
 
+The customer PWA classifies every opportunity as live, cached, delayed, demonstration or validation-only. Validation-only rows are hidden, non-live rows cannot alert, and only fresh validated live observations can retain alert eligibility after the existing safety decision floor runs.
+
 ## Security
 Never commit API keys, OAuth secrets, access tokens, database credentials or private backend configuration to this repository.
