@@ -16,6 +16,11 @@ const baseObservation = {
   }
 };
 
+const retailerApiObservation = {
+  ...baseObservation,
+  source: { ...baseObservation.source, provider: 'retailerapi' }
+};
+
 {
   const result = assessHistoryPromotion(baseObservation, { asOf, validationState: 'validated', sourceReliability: 92, observationConfidence: 90 });
   assert.equal(result.eligibleForPersistentHistory, true);
@@ -68,6 +73,20 @@ const baseObservation = {
   ], { asOf, validationState: 'validated', sourceReliability: 92, observationConfidence: 90 });
   assert.equal(result.accepted.length, 1);
   assert.equal(result.rejected.length, 1);
+}
+
+{
+  const missing = assessHistoryPromotion(retailerApiObservation, { asOf, validationState: 'validated', sourceReliability: 92, observationConfidence: 90 });
+  assert.equal(missing.eligibleForPersistentHistory, false);
+  assert(missing.blockers.includes('retailer-crosscheck-required'));
+
+  const failed = assessHistoryPromotion(retailerApiObservation, { asOf, validationState: 'validated', sourceReliability: 92, observationConfidence: 90, retailerCrosscheck: { historyEligible: false } });
+  assert.equal(failed.eligibleForPersistentHistory, false);
+  assert(failed.blockers.includes('retailer-crosscheck-failed'));
+
+  const passed = assessHistoryPromotion(retailerApiObservation, { asOf, validationState: 'validated', sourceReliability: 92, observationConfidence: 90, retailerCrosscheck: { historyEligible: true } });
+  assert.equal(passed.eligibleForPersistentHistory, true);
+  assert.equal(passed.retailerCrosscheckPassed, true);
 }
 
 console.log('history-promotion tests passed');
