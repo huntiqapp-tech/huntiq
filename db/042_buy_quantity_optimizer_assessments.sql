@@ -1,0 +1,26 @@
+create table if not exists buy_quantity_optimizer_assessments (
+  id integer primary key,
+  opportunity_id text,
+  retailer text,
+  sku text,
+  assessed_at text not null default current_timestamp,
+  max_available integer not null,
+  recommended_quantity integer not null,
+  unit_cost real not null,
+  unit_net_profit real not null,
+  monthly_demand real not null,
+  confidence_score integer not null,
+  max_90d_capital_at_risk_pct real not null,
+  min_marginal_roi_pct real not null,
+  selected_capital_outlay real not null,
+  selected_capital_at_risk_90 real not null,
+  selected_capital_at_risk_90_pct real not null,
+  selected_liquidation_days real not null,
+  selected_confidence_adjusted_profit_90 real not null,
+  selected_confidence_adjusted_marginal_roi_pct real not null,
+  alert_state text not null,
+  alert_eligible integer not null,
+  quantity_curve_json text not null default '[]',
+  warnings_json text not null default '[]'
+);
+create index if not exists idx_buy_quantity_optimizer_opportunity on buy_quantity_optimizer_assessments(opportunity_id, assessed_at);
