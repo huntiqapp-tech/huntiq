@@ -22,5 +22,7 @@ RetailerAPI shadow batches can now flow through the existing live-history and op
 
 The customer PWA classifies every opportunity as live, cached, delayed, demonstration or validation-only. Validation-only rows are hidden, non-live rows cannot alert, and only fresh validated live observations can retain alert eligibility after the existing safety decision floor runs.
 
+The server-only customer payload builder requires an authenticated lookup result, a recorded manual source check, and explicit customer-display rights before RetailerAPI observations can be serialized for the PWA. It removes secret-bearing rows, preserves public provenance and channel/location identity, and leaves alerts disabled unless validation and the existing decision floor both pass.
+
 ## Security
 Never commit API keys, OAuth secrets, access tokens, database credentials or private backend configuration to this repository.
