@@ -25,4 +25,6 @@ assert.deepEqual(groups.live.map(x=>x.id),['live']);
 assert.deepEqual(groups.hidden.map(x=>x.id),['shadow']);
 const appSource=fs.readFileSync(require.resolve('../app.js'),'utf8');
 assert(appSource.includes("d.observedAt||d.timestamp||new Date().toISOString()"),'customer feed must preserve provider observation time for freshness classification');
+assert(appSource.includes("Array.isArray(d.priceHistory)?d.priceHistory:[]"),'live rows without history must render safely');
+assert(appSource.includes("d.dataOrigin==='demo'?'Demo sold':'Verified sold'"),'resale evidence labels must distinguish demo and live rows');
 console.log('pwa data-state tests passed');
