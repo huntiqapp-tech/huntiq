@@ -1,0 +1,12 @@
+'use strict';
+const assert=require('assert');
+const {scoreEvidenceAgreement}=require('../lib/evidence-agreement');
+const {scoreOpportunityConfidence}=require('../lib/opportunity-confidence');
+const aligned=scoreEvidenceAgreement({retailerPrices:[99,101,100],resaleEstimates:[165,170,168],roiScenarios:[42,38,35]});
+assert.strictEqual(aligned.level,'HIGH');assert.strictEqual(aligned.alertEligible,true);assert.strictEqual(aligned.blockers.length,0);
+const conflict=scoreEvidenceAgreement({retailerPrices:[80,125],resaleEstimates:[150,220],roiScenarios:[55,-8,30]});
+assert.strictEqual(conflict.level,'LOW');assert.strictEqual(conflict.alertEligible,false);assert(conflict.blockers.includes('retailer price disagreement'));assert(conflict.blockers.includes('resale-source disagreement'));assert(conflict.blockers.includes('profit outcome disagreement'));
+const base={confidence:90,historyAssessment:{historyCoverageScore:90},resale:{resaleConfidence:90,liquidityScore:90,soldCount:20},economics:{roi:70},downsideEconomics:{roi:35},alert:{alert:true},dataOrigin:'live'};
+const gated=scoreOpportunityConfidence({...base,evidenceAgreement:conflict});assert.strictEqual(gated.level,'LOW');assert.strictEqual(gated.alertEligible,false);assert(gated.blockers.includes('retailer price disagreement'));
+const good=scoreOpportunityConfidence({...base,evidenceAgreement:aligned});assert.strictEqual(good.level,'HIGH');assert.strictEqual(good.alertEligible,true);
+console.log('evidence-agreement tests passed');
