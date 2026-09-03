@@ -17,4 +17,7 @@ const supplied=[{status:'sold',price:100,soldAt:'2026-08-30T18:00:00.000Z',match
 const custom=Pwa.evaluateForPwa({...deal,completedSales:supplied},legacy,{asOf});
 assert.equal(custom.demoComparables,false);
 assert.equal(custom.comparables.length,1);
+const liveWithoutSold=Pwa.evaluateForPwa({...deal,dataOrigin:'live',validationState:'validated'},legacy,{asOf});
+assert.equal(liveWithoutSold.demoComparables,false);
+assert.equal(liveWithoutSold.comparables.length,0,'live retailer data must never synthesize demo sold evidence');
 console.log('pwa-opportunity tests passed');
