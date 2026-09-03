@@ -3,7 +3,7 @@
 Last established from repository and product handoff: 2026-09-03. This is the living handoff and must be updated after meaningful work.
 
 ## CURRENT VERSION
-- Package: **0.9.61**
+- Package: **0.9.62**
 - Public PWA preview is functional but still intentionally uses demonstration opportunity data until rights-cleared live integrations are connected.
 - Offline cache: **`huntiq-public-v73`**.
 
@@ -38,6 +38,7 @@ Last established from repository and product handoff: 2026-09-03. This is the li
 - **v0.9.59 explainable Deal Coach:** `lib/deal-coach.js` converts existing price-history coverage, anomaly confidence, completed-sale depth, resale confidence, liquidity, base/downside/risk-adjusted economics, safe max-buy and alert state into a deterministic BUY/WATCH/SKIP explanation. `lib/deal-coach-runtime.js` renders the explanation on PWA opportunity cards and forces demonstration rows to WATCH so demo evidence cannot look like a live recommendation.
 - **v0.9.60 inherited mainline:** unified opportunity-confidence scoring and Deal Coach display are present from direct mainline development. Demonstration data remains capped and alert-ineligible. Additional scoring work is paused while the rights-cleared retailer scraper and authenticated RetailerAPI validation are the priority.
 - **v0.9.61 retailer scraper foundation:** the server-only scraper accepts only explicit HTTPS host allowlists, rejects credentials/private targets/redirects/zero prices/stale or future observations, and extracts public JSON-LD or price metadata into canonical shadow observations. A dedicated Home Depot adapter preserves store/ZIP/online identity; the batch runner enforces usage limits, deduplicates observations, records bounded raw provenance and hard-disables alerts and redistribution.
+- **v0.9.62 cross-source evidence agreement:** `lib/evidence-agreement.js` scores agreement between corroborating retailer prices, resale estimates and profit/ROI scenarios. Large retailer-price spread, resale-source spread or sign-changing ROI outcomes create explicit blockers; unified opportunity confidence fails closed and urgent alerts are suppressed rather than averaging conflicts away. The Deal Coach can surface the agreement score on opportunity cards.
 
 ## DATABASE / AUDIT LAYERS
 - `db/013_price_history_features.sql` — store-isolated sequential price features.
@@ -61,6 +62,7 @@ Last established from repository and product handoff: 2026-09-03. This is the li
 - **`db/038_retailerapi_shadow_history.sql`** — isolated RetailerAPI shadow-history and evaluation audit rows; alert eligibility defaults false.
 - **`db/039_deal_coach_assessments.sql`** — explainability audit snapshot linking the recommendation to price-history, anomaly, resale, economics, safe max-buy and alert evidence.
 - **`db/040_opportunity_confidence.sql`** — unified opportunity-confidence component, weakest-link, blocker and alert-eligibility snapshots.
+- **`db/041_evidence_agreement_assessments.sql`** — retailer-price, resale-source and ROI-scenario agreement snapshots with spread metrics, blockers, cautions and alert eligibility.
 
 ## TESTING
 - Automated tests cover ingestion, price history, anomalies, economics, resale, evaluator, evidence, alerts, matching, retailer-observation rights and promotion logic.
@@ -74,6 +76,7 @@ Last established from repository and product handoff: 2026-09-03. This is the li
 - **v0.9.59 adds `tests/deal-coach.test.js` covering strong-buy evidence, thin-history/resale cautions, safe-max-buy violations, alert explanation and mandatory demo WATCH behavior.**
 - **v0.9.60 adds `tests/opportunity-confidence.test.js` covering high-confidence live evidence, thin-history and weak-resale blockers, and mandatory demo alert suppression.**
 - **v0.9.61 adds `tests/retailer-scraper.test.js` covering URL/credential protections, structured-data parsing, canonical provenance, Home Depot channel identity, freshness rejection, batch deduplication and hard alert suppression.**
+- **v0.9.62 adds `tests/evidence-agreement.test.js` covering aligned evidence, retailer-price conflict, resale-source conflict, profit-sign disagreement, confidence downgrade and alert suppression. GitHub Actions HUNTIQ tests passed before merge.**
 
 ## RETAILER / MARKETPLACE RESEARCH COMPLETED
 - eBay Browse API: active asking/product evidence only; not completed-sale history. Marketplace Insights remains restricted.
@@ -81,6 +84,7 @@ Last established from repository and product handoff: 2026-09-03. This is the li
 - Home Depot, Staples, Ace, Target, Menards, Kohl's, Harbor Freight, CVS, Walgreens, Tractor Supply, Costco, Sam's Club, BJ's, Micro Center, Northern Tool, Dollar General, Office Depot/OfficeMax, PetSmart, Petco, AutoZone and O'Reilly Auto Parts public retailer/promotion rules documented.
 - **Advance Auto Parts (v0.9.41):** Advance Rewards replaced Speed Perks in February 2026; points/rewards remain deferred account value unless applied at checkout. Public coupons, rebates, pickup readiness and shipping thresholds stay in promotion/fulfillment economics rather than raw shelf-price history. Affiliate commission remains outside ranking. See `docs/advance-auto-parts-retailer-fit-2026-09-02.md`.
 - **DICK'S Sporting Goods (v0.9.59):** public pages confirm online/store pricing and availability can differ, pickup is availability-dependent, price matching is a checkout rule rather than raw shelf history, and promotions can carry manufacturer/category exclusions. HUNTIQ should keep channels isolated, timestamp availability, model approved price matches only in acquisition economics, and keep ScoreCard rewards as deferred value unless redeemed. See `docs/dicks-sporting-goods-retailer-fit-2026-09-03.md`.
+- **Michaels (v0.9.62):** in-store matching to Michaels.com and qualifying online price adjustments are checkout economics rather than raw shelf history; clearance, pricing errors and third-party marketplace listings have important exclusions; coupons cannot freely stack; rewards have no cash value; and pickup eligibility depends on selected-store inventory. See `docs/michaels-retailer-fit-2026-09-03.md`.
 
 ## HARD PRODUCT / DATA RULES
 - Asking prices are not sold comps.
@@ -91,6 +95,7 @@ Last established from repository and product handoff: 2026-09-03. This is the li
 - Completed-sale evidence must be recent and reliable enough to justify current resale economics.
 - Retailer-price provenance and resale-sale provenance are separate trust chains.
 - Source reliability constrains, never inflates, anomaly/resale confidence.
+- Cross-source disagreement is a confidence/alert constraint; materially conflicting retailer prices, resale estimates or ROI scenarios cannot be averaged into a high-confidence urgent alert.
 - Alert urgency is constrained by the worst credible source-adjusted ROI scenario, multi-unit capital exposure, resale decay and marketplace late-sale cost stress.
 - Inventory is an observation with freshness/confidence, not a guarantee.
 - Affiliate commission never influences ranking.
@@ -108,7 +113,8 @@ Last established from repository and product handoff: 2026-09-03. This is the li
 - Manually validate a representative RetailerAPI sample against source retailer pages before promoting shadow observations or enabling alerts.
 - Run authenticated RetailerAPI lookup and manual source-page validation, then change only approved observations from `shadow-live` to validated history; keep alerts disabled until that evidence is recorded.
 - After authenticated RetailerAPI smoke/manual validation, pass approved assessments through `buildCustomerLivePayload` and inject its opportunities as `HUNTIQ_CUSTOMER_OPPORTUNITIES`; keep `enableAlerts` false through the first validation pass.
+- Feed crosscheck prices, rights-cleared resale estimates and base/downside ROI scenarios into the new evidence-agreement layer before customer alert eligibility is finalized.
 - Push source-reliability metadata into each rights-cleared retailer adapter as integrations become available.
 - Connect a legitimate completed-sale provider before claiming live 30/60/90 sold history.
-- Persist production evaluator/history/promotion/resale/source/alert/Deal Coach snapshots once backend storage is connected.
+- Persist production evaluator/history/promotion/resale/source/alert/Deal Coach/evidence-agreement snapshots once backend storage is connected.
 - Expand actual notification delivery after backend/account architecture is selected.
