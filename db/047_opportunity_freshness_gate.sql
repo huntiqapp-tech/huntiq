@@ -1,0 +1,30 @@
+create table if not exists opportunity_freshness_gate_assessments (
+  id bigserial primary key,
+  opportunity_key text not null,
+  assessed_at timestamptz not null default now(),
+  retail_observed_at timestamptz,
+  resale_latest_sold_at timestamptz,
+  retail_age_minutes numeric not null default 0,
+  resale_age_days numeric not null default 0,
+  retail_decay numeric not null,
+  resale_decay numeric not null,
+  cross_domain_multiplier numeric not null,
+  freshness_adjusted_profit numeric,
+  freshness_adjusted_roi_pct numeric,
+  adjusted_anomaly_confidence numeric,
+  adjusted_resale_confidence numeric,
+  alert_state text not null,
+  opportunity_confidence_score numeric,
+  alert_eligible boolean not null default false,
+  blockers jsonb not null default '[]'::jsonb,
+  warnings jsonb not null default '[]'::jsonb,
+  created_at timestamptz not null default now(),
+  check (retail_age_minutes >= 0),
+  check (resale_age_days >= 0),
+  check (retail_decay between 0 and 1),
+  check (resale_decay between 0 and 1),
+  check (cross_domain_multiplier between 0 and 1),
+  check (alert_state in ('instant','standard','digest'))
+);
+create index if not exists opportunity_freshness_gate_key_time_idx on opportunity_freshness_gate_assessments(opportunity_key, assessed_at desc);
+create index if not exists opportunity_freshness_gate_alert_idx on opportunity_freshness_gate_assessments(alert_eligible, assessed_at desc);
