@@ -1,11 +1,11 @@
 # HUNTIQ — Project Status
 
-Last established from repository and product handoff: 2026-09-02. This is the living handoff and must be updated after meaningful work.
+Last established from repository and product handoff: 2026-09-03. This is the living handoff and must be updated after meaningful work.
 
 ## CURRENT VERSION
-- Package: **0.9.58**
+- Package: **0.9.59**
 - Public PWA preview is functional but still intentionally uses demonstration opportunity data until rights-cleared live integrations are connected.
-- Offline cache: **`huntiq-public-v71`**.
+- Offline cache: **`huntiq-public-v72`**.
 
 ## DONE / PRESENT
 - Mobile-first installable PWA with offline service worker and browser-persistent watchlist.
@@ -35,6 +35,7 @@ Last established from repository and product handoff: 2026-09-02. This is the li
 - **v0.9.56 inherited mainline:** break-even resilience scoring is present from merged PR #58. Further scoring and alert-model work is paused while live-data validation is the priority.
 - **v0.9.57 validated customer payload gate:** `lib/customer-live-payload.js` converts only explicitly validated, customer-display-authorized RetailerAPI assessments into a secret-free PWA payload. It preserves provider provenance and store/ZIP/online identity, rejects unauthorized or secret-bearing rows, classifies freshness, and leaves alerts off by default.
 - **v0.9.58 retailer crosscheck gate:** RetailerAPI observations require a fresh, positive-price, product/channel/location-matched retailer crosscheck before permanent history promotion. The higher observed price is retained for conservative acquisition economics, and failed or future-dated crosschecks cannot increase anomaly confidence or enable urgent alerts.
+- **v0.9.59 explainable Deal Coach:** `lib/deal-coach.js` converts existing price-history coverage, anomaly confidence, completed-sale depth, resale confidence, liquidity, base/downside/risk-adjusted economics, safe max-buy and alert state into a deterministic BUY/WATCH/SKIP explanation. `lib/deal-coach-runtime.js` renders the explanation on PWA opportunity cards and forces demonstration rows to WATCH so demo evidence cannot look like a live recommendation.
 
 ## DATABASE / AUDIT LAYERS
 - `db/013_price_history_features.sql` — store-isolated sequential price features.
@@ -56,6 +57,7 @@ Last established from repository and product handoff: 2026-09-02. This is the li
 - `db/031_resale_decay_assessments.sql` — resale trend, future 30/60/90 stress prices, weighted exit price, decay score and warnings/blockers.
 - **`db/032_marketplace_late_sale_stress.sql`** — marketplace late-sale fee/shipping/holding stress plus history clock-integrity assessment storage.
 - **`db/038_retailerapi_shadow_history.sql`** — isolated RetailerAPI shadow-history and evaluation audit rows; alert eligibility defaults false.
+- **`db/039_deal_coach_assessments.sql`** — explainability audit snapshot linking the recommendation to price-history, anomaly, resale, economics, safe max-buy and alert evidence.
 
 ## TESTING
 - Automated tests cover ingestion, price history, anomalies, economics, resale, evaluator, evidence, alerts, matching, retailer-observation rights and promotion logic.
@@ -66,12 +68,14 @@ Last established from repository and product handoff: 2026-09-02. This is the li
 - **v0.9.53 adds `tests/pwa-data-state.test.js` covering live freshness, cache/delay downgrades, demonstration alert suppression and hidden shadow observations.**
 - **v0.9.57 adds `tests/customer-live-payload.test.js` covering validation evidence, display rights, secret rejection, channel/location preservation, freshness downgrades and default alert suppression.**
 - **v0.9.58 adds `tests/retailer-crosscheck.test.js` and history-promotion integration coverage for price, identity, channel/location, freshness, future-time and required-crosscheck failures.**
+- **v0.9.59 adds `tests/deal-coach.test.js` covering strong-buy evidence, thin-history/resale cautions, safe-max-buy violations, alert explanation and mandatory demo WATCH behavior.**
 
 ## RETAILER / MARKETPLACE RESEARCH COMPLETED
 - eBay Browse API: active asking/product evidence only; not completed-sale history. Marketplace Insights remains restricted.
 - Best Buy and Lowe's official developer routes researched; production use requires credentials/terms/onboarding.
 - Home Depot, Staples, Ace, Target, Menards, Kohl's, Harbor Freight, CVS, Walgreens, Tractor Supply, Costco, Sam's Club, BJ's, Micro Center, Northern Tool, Dollar General, Office Depot/OfficeMax, PetSmart, Petco, AutoZone and O'Reilly Auto Parts public retailer/promotion rules documented.
 - **Advance Auto Parts (v0.9.41):** Advance Rewards replaced Speed Perks in February 2026; points/rewards remain deferred account value unless applied at checkout. Public coupons, rebates, pickup readiness and shipping thresholds stay in promotion/fulfillment economics rather than raw shelf-price history. Affiliate commission remains outside ranking. See `docs/advance-auto-parts-retailer-fit-2026-09-02.md`.
+- **DICK'S Sporting Goods (v0.9.59):** public pages confirm online/store pricing and availability can differ, pickup is availability-dependent, price matching is a checkout rule rather than raw shelf history, and promotions can carry manufacturer/category exclusions. HUNTIQ should keep channels isolated, timestamp availability, model approved price matches only in acquisition economics, and keep ScoreCard rewards as deferred value unless redeemed. See `docs/dicks-sporting-goods-retailer-fit-2026-09-03.md`.
 
 ## HARD PRODUCT / DATA RULES
 - Asking prices are not sold comps.
@@ -90,6 +94,7 @@ Last established from repository and product handoff: 2026-09-02. This is the li
 - Primary ROI uses actual cash outlay; deferred value is separate.
 - Promotion-adjusted effective cost never becomes raw shelf-price history.
 - Raw completed-sale evidence remains immutable even when evaluator-level filtering/downweighting excludes it.
+- Customer-facing recommendation explanations must be derived from persisted evaluator evidence and must not upgrade demonstration, stale or validation-only data into a live recommendation.
 
 ## NEXT — HIGH PRIORITY
 - Make the existing RetailerAPI key available to the trusted server runtime as `RETAILERAPI_KEY` and run `npm run smoke:retailerapi`; never place the key in the public repository or browser bundle.
@@ -98,5 +103,5 @@ Last established from repository and product handoff: 2026-09-02. This is the li
 - After authenticated RetailerAPI smoke/manual validation, pass approved assessments through `buildCustomerLivePayload` and inject its opportunities as `HUNTIQ_CUSTOMER_OPPORTUNITIES`; keep `enableAlerts` false through the first validation pass.
 - Push source-reliability metadata into each rights-cleared retailer adapter as integrations become available.
 - Connect a legitimate completed-sale provider before claiming live 30/60/90 sold history.
-- Persist production evaluator/history/promotion/resale/source/alert snapshots once backend storage is connected.
+- Persist production evaluator/history/promotion/resale/source/alert/Deal Coach snapshots once backend storage is connected.
 - Expand actual notification delivery after backend/account architecture is selected.
