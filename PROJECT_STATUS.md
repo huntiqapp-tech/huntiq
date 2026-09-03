@@ -3,9 +3,9 @@
 Last established from repository and product handoff: 2026-09-02. This is the living handoff and must be updated after meaningful work.
 
 ## CURRENT VERSION
-- Package: **0.9.53**
+- Package: **0.9.55**
 - Public PWA preview is functional but still intentionally uses demonstration opportunity data until rights-cleared live integrations are connected.
-- Offline cache: **`huntiq-public-v67`**.
+- Offline cache: **`huntiq-public-v68`**.
 
 ## DONE / PRESENT
 - Mobile-first installable PWA with offline service worker and browser-persistent watchlist.
@@ -30,6 +30,8 @@ Last established from repository and product handoff: 2026-09-02. This is the li
 - **v0.9.48-v0.9.51 safety integration:** permanent-history promotion requires validated rights/freshness/reliability, recent resale evidence is time-weighted, cross-domain evidence sufficiency constrains alerts, and marketplace cost/ROI floors are enforced in the opportunity decision floor.
 - **v0.9.52 RetailerAPI shadow history bridge:** accepted adapter output can now enter the existing live-history/opportunity evaluator in an isolated `shadow-live` state. Repeated observations are deduplicated, provider provenance remains attached, audit rows remain non-redistributable by default, and notifications are unconditionally suppressed.
 - **v0.9.53 customer data-state boundary:** every opportunity is classified as live, cached, delayed, demonstration or validation-only before customer rendering. Shadow observations remain hidden, demonstration/cached/delayed rows cannot alert, and only fresh validated live rows can retain decision-floor alert eligibility. The PWA now shows per-card state badges, feed counts and dedicated Live/Demo filters.
+- **v0.9.54 inherited mainline:** quantity optimization and opportunity aging/half-life logic are present from merged PR #55. Further scoring and alert-model work is paused while live-data validation is the priority.
+- **v0.9.55 validated customer payload gate:** `lib/customer-live-payload.js` converts only explicitly validated, customer-display-authorized RetailerAPI assessments into a secret-free PWA payload. It preserves provider provenance and store/ZIP/online identity, rejects unauthorized or secret-bearing rows, classifies freshness, and leaves alerts off by default.
 
 ## DATABASE / AUDIT LAYERS
 - `db/013_price_history_features.sql` — store-isolated sequential price features.
@@ -59,6 +61,7 @@ Last established from repository and product handoff: 2026-09-02. This is the li
 - **v0.9.47 adds `tests/retailerapi.test.js` and a sanitized provider fixture covering authentication request construction, redaction, errors, freshness rejection, cross-retailer normalization, channel separation, deduplication, provenance and the shadow-mode alert gate.**
 - **v0.9.52 adds `tests/retailerapi-shadow-history.test.js` covering isolated history evaluation, deduplication, audit provenance and hard alert suppression.**
 - **v0.9.53 adds `tests/pwa-data-state.test.js` covering live freshness, cache/delay downgrades, demonstration alert suppression and hidden shadow observations.**
+- **v0.9.55 adds `tests/customer-live-payload.test.js` covering validation evidence, display rights, secret rejection, channel/location preservation, freshness downgrades and default alert suppression.**
 
 ## RETAILER / MARKETPLACE RESEARCH COMPLETED
 - eBay Browse API: active asking/product evidence only; not completed-sale history. Marketplace Insights remains restricted.
@@ -88,7 +91,7 @@ Last established from repository and product handoff: 2026-09-02. This is the li
 - Make the existing RetailerAPI key available to the trusted server runtime as `RETAILERAPI_KEY` and run `npm run smoke:retailerapi`; never place the key in the public repository or browser bundle.
 - Manually validate a representative RetailerAPI sample against source retailer pages before promoting shadow observations or enabling alerts.
 - Run authenticated RetailerAPI lookup and manual source-page validation, then change only approved observations from `shadow-live` to validated history; keep alerts disabled until that evidence is recorded.
-- Connect the server-rendered `HUNTIQ_CUSTOMER_OPPORTUNITIES` payload only after authenticated RetailerAPI validation; the PWA now enforces live/cached/delayed/demo visibility and alert state.
+- After authenticated RetailerAPI smoke/manual validation, pass approved assessments through `buildCustomerLivePayload` and inject its opportunities as `HUNTIQ_CUSTOMER_OPPORTUNITIES`; keep `enableAlerts` false through the first validation pass.
 - Push source-reliability metadata into each rights-cleared retailer adapter as integrations become available.
 - Connect a legitimate completed-sale provider before claiming live 30/60/90 sold history.
 - Persist production evaluator/history/promotion/resale/source/alert snapshots once backend storage is connected.
