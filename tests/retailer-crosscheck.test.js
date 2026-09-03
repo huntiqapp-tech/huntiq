@@ -9,4 +9,8 @@ r=assessRetailerCrosscheck({providerPrice:40,corroboratedPrice:40,productIdentit
 assert.equal(r.historyEligible,false);assert(r.blockers.includes('channel-mismatch'));
 r=assessRetailerCrosscheck({providerPrice:40,corroboratedPrice:40,productIdentityMatch:true,channelMatch:true,locationMatch:true,providerObservedAt:'2026-09-03T01:00:00Z',corroboratedObservedAt:'2026-09-03T01:00:00Z',asOf,providerAnomalyConfidence:95,resaleMedian:90});
 assert.equal(r.historyEligible,false);assert(r.blockers.includes('crosscheck-stale'));
+r=assessRetailerCrosscheck({providerPrice:0,corroboratedPrice:0,productIdentityMatch:true,channelMatch:true,locationMatch:true,providerObservedAt:'2026-09-03T06:55:00Z',corroboratedObservedAt:'2026-09-03T06:50:00Z',asOf,providerAnomalyConfidence:95,resaleMedian:90});
+assert.equal(r.historyEligible,false);assert(r.blockers.includes('invalid-provider-price'));assert(r.blockers.includes('invalid-corroborated-price'));
+r=assessRetailerCrosscheck({providerPrice:40,corroboratedPrice:40,productIdentityMatch:true,channelMatch:true,locationMatch:true,providerObservedAt:'2026-09-03T07:30:00Z',corroboratedObservedAt:'2026-09-03T06:50:00Z',asOf,providerAnomalyConfidence:95,resaleMedian:90});
+assert.equal(r.historyEligible,false);assert(r.blockers.includes('future-crosscheck'));
 console.log('retailer-crosscheck tests passed');
