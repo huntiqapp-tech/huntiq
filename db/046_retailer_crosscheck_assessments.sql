@@ -1,0 +1,25 @@
+create table if not exists retailer_crosscheck_assessments (
+  id bigserial primary key,
+  retailer text not null,
+  product_key text not null,
+  channel text not null,
+  location_key text,
+  provider_price numeric(12,2) not null,
+  corroborated_price numeric(12,2) not null,
+  conservative_acquisition_price numeric(12,2) not null,
+  price_delta_pct numeric(8,2) not null,
+  validation_score integer not null check (validation_score between 0 and 100),
+  history_eligible boolean not null default false,
+  adjusted_anomaly_confidence integer not null default 0,
+  resale_median numeric(12,2),
+  expected_net_profit numeric(12,2),
+  expected_roi_pct numeric(10,2),
+  urgent_alert_eligible boolean not null default false,
+  alert_state text not null default 'digest',
+  warnings jsonb not null default '[]'::jsonb,
+  blockers jsonb not null default '[]'::jsonb,
+  provider_observed_at timestamptz,
+  corroborated_observed_at timestamptz,
+  assessed_at timestamptz not null default now()
+);
+create index if not exists retailer_crosscheck_lookup_idx on retailer_crosscheck_assessments(retailer,product_key,channel,location_key,assessed_at desc);
