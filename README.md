@@ -18,5 +18,7 @@ The public preview currently uses clearly labeled demonstration opportunity data
 
 The server-only RetailerAPI shadow adapter is documented in `docs/retailerapi-live-ingestion.md`. It normalizes validated online observations with provenance, rejects stale or malformed provider cells, deduplicates observations and keeps customer alerts disabled until live validation is complete.
 
+RetailerAPI shadow batches can now flow through the existing live-history and opportunity evaluation path without entering permanent history or enabling notifications. The bridge preserves provider provenance, deduplicates repeated observations, keeps online/store/ZIP history isolated, and emits auditable shadow-history rows for later server-side persistence.
+
 ## Security
 Never commit API keys, OAuth secrets, access tokens, database credentials or private backend configuration to this repository.
