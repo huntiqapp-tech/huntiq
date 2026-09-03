@@ -24,5 +24,7 @@ The customer PWA classifies every opportunity as live, cached, delayed, demonstr
 
 The server-only customer payload builder requires an authenticated lookup result, a recorded manual source check, and explicit customer-display rights before RetailerAPI observations can be serialized for the PWA. It removes secret-bearing rows, preserves public provenance and channel/location identity, and leaves alerts disabled unless validation and the existing decision floor both pass.
 
+The server-only retailer scraper foundation extracts public JSON-LD or price metadata only from explicit HTTPS host allowlists. Its Home Depot adapter preserves store/ZIP/online identity and emits canonical shadow observations with evidence URL, extractor, retrieval time, retention policy and redistribution state. Redirects, credentials, private/IP targets, stale observations and unsupported retailers fail closed; batch output is deduplicated and cannot alert.
+
 ## Security
 Never commit API keys, OAuth secrets, access tokens, database credentials or private backend configuration to this repository.
