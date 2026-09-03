@@ -1,0 +1,14 @@
+const assert=require('assert');
+const risk=require('../lib/resale-condition-risk');
+const strong=risk.assess({condition:'new'},[{condition:'new',sold:true,price:150},{condition:'new',sold:true,price:145},{condition:'open box',sold:true,price:135}]);
+assert.equal(strong.status,'strong');
+assert.equal(strong.blocker,false);
+const weak=risk.assess({condition:'new'},[{condition:'used',sold:true,price:120},{condition:'used',sold:true,price:100},{condition:'unknown',sold:true,price:90}]);
+assert.ok(weak.conditionScore<70);
+const adjusted=risk.adjustEconomics({resaleValue:160,profit:60,roi:75},weak);
+assert.ok(adjusted.conditionAdjustedProfit<60);
+assert.ok(adjusted.conditionAdjustedRoi<75);
+const gated=risk.alertGate({eligible:true,urgency:'instant'},{conditionScore:40,status:'weak',blocker:true});
+assert.equal(gated.eligible,false);
+assert.equal(gated.urgency,'digest');
+console.log('resale-condition-risk tests passed');
