@@ -1,5 +1,6 @@
 'use strict';
 const assert=require('assert');
+const fs=require('fs');
 const Pwa=require('../lib/pwa-opportunity');
 const asOf='2026-09-01T18:00:00.000Z';
 const deal={id:'demo-1',sku:'DEMO-1',price:40,priceHistory:[120,120,118,119,120,120,118,120],comps:{d30:120,d60:116,d90:112},feeRate:.135,shipping:8,taxRate:.06,dataQuality:.95,holdingCostPerDay:.1};
@@ -40,4 +41,8 @@ assert.equal(falseDeal.marketReality.verdict,'above-sold-market','retail price a
 assert(falseDeal.marketReality.marketSpread<0,'market spread must expose the lack of resale edge');
 assert.match(falseDeal.marketReality.note,/no positive spread/i);
 assert.equal(falseDeal.recommendation,'skip');
+const runtime=fs.readFileSync(require.resolve('../lib/pwa-runtime'),'utf8');
+assert(runtime.includes("d.marketReality=strict.marketReality||null"),'strict market reality must reach customer cards');
+assert(runtime.includes('gross edge before fees'),'customer copy must not confuse gross sold-market spread with profit');
+assert(runtime.includes('context only, never resale value'),'reference prices must be visibly quarantined from resale value');
 console.log('pwa-opportunity tests passed');
