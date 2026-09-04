@@ -33,14 +33,24 @@ const falseDealComps=[
   {status:'sold',price:59,soldAt:'2026-08-22T18:00:00.000Z',matchScore:98,sourceConfidence:99},
   {status:'sold',price:61,soldAt:'2026-08-15T18:00:00.000Z',matchScore:98,sourceConfidence:99}
 ];
-const falseDeal=Pwa.evaluateForPwa({...deal,price:69,msrp:160,listPrice:160,referencePrice:160,completedSales:falseDealComps},legacy,{asOf});
+const timeline=[0,7,14,21].flatMap((d,i)=>{const observedAt=new Date(new Date(asOf).getTime()-(d+1)*86400000).toISOString();return[{price:70+i,observedAt,priceBasis:'raw-shelf'},{price:160,observedAt,priceBasis:'msrp'}];});
+const falseDeal=Pwa.evaluateForPwa({...deal,price:69,msrp:160,listPrice:160,referencePrice:160,timeline,completedSales:falseDealComps},legacy,{asOf});
 assert.equal(falseDeal.marketReality.referencePrice,160);
 assert(falseDeal.marketReality.referenceDiscountPct>50,'retailer reference discount may be displayed as context');
 assert.equal(falseDeal.marketReality.referencePriceAuthoritative,false,'reference/MSRP must never be authoritative');
 assert.equal(falseDeal.marketReality.verdict,'above-sold-market','retail price above real sold-market value must be identified');
 assert(falseDeal.marketReality.marketSpread<0,'market spread must expose the lack of resale edge');
 assert.match(falseDeal.marketReality.note,/no positive spread/i);
+assert.equal(falseDeal.historyAssessment.excludedReferenceObservationCount,4,'PWA must inherit reference-price quarantine from history scoring');
+assert(falseDeal.historyAssessment.baseline<75,'PWA anomaly baseline must use actual observed price history');
 assert.equal(falseDeal.recommendation,'skip');
+const inflatedReference=Pwa.evaluateForPwa({...deal,price:69,msrp:1600,listPrice:1600,referencePrice:1600,timeline:timeline.map(x=>x.priceBasis==='msrp'?{...x,price:1600}:x),completedSales:falseDealComps},legacy,{asOf});
+assert.equal(inflatedReference.resale.marketValue,falseDeal.resale.marketValue,'inflated MSRP must not change sold-market value');
+assert.equal(inflatedReference.economics.riskAdjustedProfit,falseDeal.economics.riskAdjustedProfit,'inflated MSRP must not change profit');
+assert.equal(inflatedReference.economics.riskAdjustedRoi,falseDeal.economics.riskAdjustedRoi,'inflated MSRP must not change ROI');
+assert.equal(inflatedReference.economics.decisionFloorProfit,falseDeal.economics.decisionFloorProfit,'inflated MSRP must not change conservative profit floor');
+assert.equal(inflatedReference.economics.decisionFloorRoi,falseDeal.economics.decisionFloorRoi,'inflated MSRP must not change conservative ROI floor');
+assert.equal(inflatedReference.recommendation,'skip');
 const runtime=fs.readFileSync(require.resolve('../lib/pwa-runtime'),'utf8');
 assert(runtime.includes("d.marketReality=strict.marketReality||null"),'strict market reality must reach customer cards');
 assert(runtime.includes('gross edge before fees'),'customer copy must not confuse gross sold-market spread with profit');
