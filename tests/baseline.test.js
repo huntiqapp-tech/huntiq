@@ -8,8 +8,8 @@ rows.push({retailer:'Best Buy',sku:'TV1',storeId:'101',price:1,observedAt:'2026-
 const recent=B.recentWindow(rows,{retailer:'Best Buy',sku:'TV1',storeId:'101'},{now,hours:24*90});
 assert.strictEqual(recent.length,12,'stale and future observations must be excluded');
 const base=B.robustBaseline(rows,{retailer:'Best Buy',sku:'TV1',storeId:'101'},{now,hours:24*90});
-assert.strictEqual(base.count,12);assert(base.median>=490&&base.median<=510);assert(base.confidence>=75);assert.strictEqual(base.sourceFamilies,2);assert(base.distinctDays>=10);assert(base.spanDays>=10);
-const anomaly=B.scorePriceAnomaly(149.99,base);assert(anomaly.dropPct>69);assert(anomaly.score>=70);assert(anomaly.confidence>=70);assert.strictEqual(anomaly.label,'Extreme Price Anomaly');assert.strictEqual(anomaly.baselineConfidence,base.confidence);
+assert.strictEqual(base.count,12);assert(base.median>=490&&base.median<=510);assert(base.confidence>=70);assert.strictEqual(base.sourceFamilies,2);assert(base.distinctDays>=10);assert(base.spanDays>=10);assert(base.freshnessScore>.5);assert(base.latestAgeHours<=24*2);
+const anomaly=B.scorePriceAnomaly(149.99,base);assert(anomaly.dropPct>69);assert(anomaly.score>=70);assert(anomaly.confidence>=65);assert.strictEqual(anomaly.label,'Extreme Price Anomaly');assert.strictEqual(anomaly.baselineConfidence,base.confidence);assert.strictEqual(anomaly.historyStale,false);
 const normal=B.scorePriceAnomaly(489.99,base);assert(normal.dropPct<5);assert.strictEqual(normal.label,'Normal Range');
 const weak=B.scorePriceAnomaly(100,{median:null,confidence:0});assert.strictEqual(weak.label,'Insufficient History');
 const burst=Array.from({length:12},(_,i)=>({retailer:'Target',sku:'A',storeId:'1',price:399,observedAt:new Date(now-i*15*60e3).toISOString(),verified:true,sourceFamily:'retailer'}));
@@ -18,4 +18,8 @@ assert(burstBase.count<burstBase.rawCount,'rapid duplicate polling must not masq
 const episode=[];for(let i=8;i>=1;i--)episode.push({retailer:'Best Buy',sku:'EP1',storeId:'online',price:500,observedAt:new Date(now-i*48*36e5).toISOString(),verified:true,sourceFamily:'retailer'});episode.push({retailer:'Best Buy',sku:'EP1',storeId:'online',price:149,observedAt:new Date(now-20*36e5).toISOString(),verified:true,sourceFamily:'retailer'});episode.push({retailer:'Best Buy',sku:'EP1',storeId:'online',price:149,observedAt:new Date(now-2*36e5).toISOString(),verified:true,sourceFamily:'retailer'});
 const episodeBase=B.robustBaseline(episode,{retailer:'Best Buy',sku:'EP1',storeId:'online'},{now,hours:24*90,currentPrice:149,minSpacingHours:1});
 assert.strictEqual(episodeBase.currentEpisodeExcluded,2,'ongoing discount observations should not contaminate their own baseline');assert.strictEqual(episodeBase.median,500);assert(B.scorePriceAnomaly(149,episodeBase).dropPct>70);
-console.log('HUNTIQ robust baseline tests passed',{baseline:base,episode:episodeBase,anomaly});
+const staleRows=[];for(let i=0;i<12;i++)staleRows.push({retailer:'Walmart',sku:'STALE1',storeId:'2200',channel:'store',price:300+(i%2)*5,observedAt:new Date(now-(35+i)*24*36e5).toISOString(),verified:true,sourceFamily:i%2?'retailer':'api'});
+const staleBase=B.robustBaseline(staleRows,{retailer:'Walmart',sku:'STALE1',storeId:'2200',channel:'store'},{now,hours:24*90});
+const staleAnomaly=B.scorePriceAnomaly(99,staleBase);
+assert(staleBase.latestAgeHours>=35*24,'latest baseline evidence should expose its age');assert.strictEqual(staleBase.freshnessScore,0,'history older than the freshness horizon must receive zero freshness authority');assert(staleBase.confidence<70,'stale history must lose baseline confidence');assert.strictEqual(staleAnomaly.historyStale,true);assert.strictEqual(staleAnomaly.label,'Stale History - Verify','large drops backed only by stale history must not be promoted as extreme anomalies');
+console.log('HUNTIQ robust baseline tests passed',{baseline:base,episode:episodeBase,stale:staleBase,anomaly});
