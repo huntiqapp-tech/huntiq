@@ -18,7 +18,7 @@ const providerObservation = {
   channel: 'store',
   price: 129,
   observedAt: '2026-09-04T06:30:00Z',
-  source: { provider: 'brightdata', providerRecordId: 'row-1' }
+  source: { provider: 'bright-data', providerRecordId: 'row-1' }
 };
 const sourceObservation = { ...providerObservation };
 const rights = { rightsClass: 'contract-approved', retentionPolicy: 'persistent-authorized' };
@@ -27,7 +27,7 @@ assert.deepStrictEqual(sameIdentity(providerObservation, sourceObservation).mism
 assert.strictEqual(observationHash(providerObservation).length, 64);
 
 const validated = reviewProviderValidationRun({
-  provider: 'brightdata', retailer: 'Home Depot', snapshotId: 'snap_123', providerStatus: 'ready', normalizedCount: 1
+  provider: 'bright-data', retailer: 'Home Depot', snapshotId: 'snap_123', providerStatus: 'ready', normalizedCount: 1
 }, {
   manualSourceCheckPassed: true, customerDisplayAllowed: true, retentionAllowed: true, redistributionAllowed: true,
   ...rights, providerObservation, sourceObservation, checkedAt: '2026-09-04T06:35:00Z'
@@ -52,21 +52,21 @@ const historyGate = assessHistoryPromotion(promoted, {
 assert.strictEqual(historyGate.eligibleForPersistentHistory, true);
 assert.strictEqual(historyGate.eligibleForCustomerRedistribution, true);
 
-const mismatch = reviewProviderValidationRun({ provider: 'brightdata', retailer: 'Home Depot', providerStatus: 'ready', normalizedCount: 1 }, {
+const mismatch = reviewProviderValidationRun({ provider: 'bright-data', retailer: 'Home Depot', providerStatus: 'ready', normalizedCount: 1 }, {
   manualSourceCheckPassed: true, customerDisplayAllowed: true, retentionAllowed: true, redistributionAllowed: true, ...rights,
   providerObservation, sourceObservation: { ...sourceObservation, storeId: '9999' }, checkedAt: '2026-09-04T06:35:00Z'
 });
 assert.strictEqual(mismatch.validationState, 'shadow-review-required');
 assert.ok(mismatch.blockers.some(item => item.startsWith('identity-mismatch:')));
 
-const priceMismatch = reviewProviderValidationRun({ provider: 'brightdata', retailer: 'Home Depot', providerStatus: 'ready', normalizedCount: 1 }, {
+const priceMismatch = reviewProviderValidationRun({ provider: 'bright-data', retailer: 'Home Depot', providerStatus: 'ready', normalizedCount: 1 }, {
   manualSourceCheckPassed: true, customerDisplayAllowed: true, retentionAllowed: true, redistributionAllowed: true, ...rights,
   providerObservation, sourceObservation: { ...sourceObservation, price: 149 }, checkedAt: '2026-09-04T06:35:00Z'
 });
 assert.ok(priceMismatch.blockers.includes('manual-price-mismatch'));
 assert.throws(() => promoteValidatedObservation(providerObservation, priceMismatch), /validated provider review required/);
 
-const rightsMissing = reviewProviderValidationRun({ provider: 'brightdata', retailer: 'Home Depot', providerStatus: 'ready', normalizedCount: 1 }, {
+const rightsMissing = reviewProviderValidationRun({ provider: 'bright-data', retailer: 'Home Depot', providerStatus: 'ready', normalizedCount: 1 }, {
   manualSourceCheckPassed: true, customerDisplayAllowed: false, retentionAllowed: false, redistributionAllowed: false,
   providerObservation, sourceObservation, checkedAt: '2026-09-04T06:35:00Z'
 });
@@ -75,7 +75,27 @@ assert.strictEqual(rightsMissing.alertsEnabled, false);
 assert.ok(rightsMissing.blockers.includes('retention-rights-unverified'));
 assert.ok(rightsMissing.blockers.includes('rights-class-required'));
 
-const incomplete = reviewProviderValidationRun({ provider: 'brightdata', retailer: 'Home Depot', providerStatus: 'running', normalizedCount: 0 }, {});
+const retentionOnly = reviewProviderValidationRun({ provider: 'bright-data', retailer: 'Home Depot', providerStatus: 'ready', normalizedCount: 1 }, {
+  manualSourceCheckPassed: true, customerDisplayAllowed: false, retentionAllowed: true, redistributionAllowed: false, ...rights,
+  providerObservation, sourceObservation, checkedAt: '2026-09-04T06:35:00Z'
+});
+assert.strictEqual(retentionOnly.validationState, 'validated');
+assert.strictEqual(retentionOnly.historyPromotionAllowed, true, 'retention rights can authorize internal history');
+assert.strictEqual(retentionOnly.customerDisplayAllowed, false, 'internal history must remain separate from customer redistribution');
+
+const provenanceMismatch = reviewProviderValidationRun({ provider: 'retailerapi', retailer: 'Home Depot', providerStatus: 'ready', normalizedCount: 1 }, {
+  manualSourceCheckPassed: true, customerDisplayAllowed: true, retentionAllowed: true, redistributionAllowed: true, ...rights,
+  providerObservation, sourceObservation, checkedAt: '2026-09-04T06:35:00Z'
+});
+assert.ok(provenanceMismatch.blockers.includes('provider-provenance-mismatch'));
+
+const zeroPrice = reviewProviderValidationRun({ provider: 'bright-data', retailer: 'Home Depot', providerStatus: 'ready', normalizedCount: 1 }, {
+  manualSourceCheckPassed: true, customerDisplayAllowed: true, retentionAllowed: true, redistributionAllowed: true, ...rights,
+  providerObservation: { ...providerObservation, price: 0 }, sourceObservation: { ...sourceObservation, price: 0 }, checkedAt: '2026-09-04T06:35:00Z'
+});
+assert.ok(zeroPrice.blockers.includes('manual-price-comparison-required'));
+
+const incomplete = reviewProviderValidationRun({ provider: 'bright-data', retailer: 'Home Depot', providerStatus: 'running', normalizedCount: 0 }, {});
 assert.strictEqual(incomplete.validationState, 'shadow-review-required');
 assert.ok(incomplete.blockers.includes('provider-run-not-complete'));
 assert.ok(incomplete.blockers.includes('no-normalized-observations'));
