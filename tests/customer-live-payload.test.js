@@ -97,7 +97,8 @@ const contaminatedHistory = buildCustomerLivePayload({
   }]
 }, validation, { asOf, enableAlerts: true });
 assert.equal(contaminatedHistory.opportunities[0].priceHistoryObservations.length, 1, 'channel-mismatched and non-historical rows must be excluded');
-assert.equal(contaminatedHistory.opportunities[0].liveReadiness.historyEvidence.promotedCount, 1, 'claimed promoted history cannot exceed accepted timestamped rows');
+assert.equal(contaminatedHistory.opportunities[0].liveReadiness.historyReady, false, 'claimed promoted counts cannot make one accepted timestamped row history-ready');
+assert.equal(contaminatedHistory.opportunities[0].liveReadiness.anomalyConfidence, 0, 'thin accepted history cannot retain anomaly confidence');
 assert.equal(contaminatedHistory.opportunities[0].customerAlertEligible, false, 'thin accepted history must remain fail-closed');
 
 const quarantined = buildCustomerLivePayload({
