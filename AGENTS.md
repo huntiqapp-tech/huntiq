@@ -70,6 +70,17 @@ Until explicitly changed, prioritize in this order:
 6. Add accounts/cloud watchlists/alerts only when the underlying data flow is dependable.
 7. Monetization and premium features should sit on top of a useful free/core experience, not block validation of the product.
 
+## Active execution priority — live data first
+This section overrides lower-priority roadmap work until the product owner changes it explicitly.
+
+1. Inspect current `main`, open pull requests, reviews, CI results and `PROJECT_STATUS.md` before choosing work. Do not duplicate, revive or stack work that another agent has already completed, closed or superseded.
+2. Complete authenticated RetailerAPI and Bright Data shadow validation using trusted runtime secrets only. Never copy credentials from screenshots, email, chat, fixtures or source files.
+3. Advance the customer-facing website/PWA path that carries validated observations through the existing history, decision-floor and customer-payload boundaries while keeping live, cached, delayed, demo and validation-only states visibly distinct.
+4. Keep alerts disabled until authenticated provider lookup, manual source comparison, display/retention rights, history promotion, verified resale evidence and downside economics are recorded as passing.
+5. Do **not** add, revive or merge another scoring, risk, freshness, ranking, inventory, resale or alert model unless real provider output exposes a specific safety gap that existing safeguards cannot handle. Passing tests alone does not justify off-priority model work.
+6. Do not substitute unrelated retailer research or speculative models when provider credentials are unavailable. Improve the provider adapter, safe smoke tooling, validation evidence, backend handoff, customer data boundary, tests or deployment readiness instead.
+7. Keep each pull request focused and based on current `main`. Merge only after the complete required test workflow passes and reviews contain no unresolved objection.
+
 ## Design principles
 - Mobile first.
 - Fast and easy to scan.
