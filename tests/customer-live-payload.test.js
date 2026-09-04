@@ -32,6 +32,11 @@ const historyObservations = [
   { productId: 'item-123', price: 47.99, observedAt: '2026-08-20T05:00:00.000Z', channel: 'online', source: { provider: 'retailerapi' }, verified: true },
   { productId: 'item-123', price: 45.99, observedAt: '2026-08-27T05:00:00.000Z', channel: 'online', source: { provider: 'retailerapi' }, verified: true }
 ];
+const completedSales = [
+  { productId: 'item-123', status: 'sold', price: 89, soldAt: '2026-09-02T05:00:00.000Z' },
+  { productId: 'item-123', status: 'completed', price: 91, soldAt: '2026-09-01T05:00:00.000Z' },
+  { productId: 'item-123', status: 'fulfilled', price: 87, soldAt: '2026-08-31T05:00:00.000Z' }
+];
 const batch = {
   provider: 'retailerapi',
   validationState: 'validated',
@@ -39,11 +44,7 @@ const batch = {
     observation,
     priceHistory: [49.99, 47.99, 45.99],
     historyObservations,
-    completedSales: [
-      { status: 'sold', price: 89, soldAt: '2026-09-02T05:00:00.000Z' },
-      { status: 'completed', price: 91, soldAt: '2026-09-01T05:00:00.000Z' },
-      { status: 'fulfilled', price: 87, soldAt: '2026-08-31T05:00:00.000Z' }
-    ],
+    completedSales,
     historyEvidence: { historyPromoted: true, promotedCount: 3, anomalyConfidence: 82 },
     resaleConfidence: 78,
     economics: { expectedProfit: 31, roi: 77, downsideProfit: 18, downsideRoi: 45 },
@@ -65,6 +66,7 @@ assert.equal(safe.opportunities[0].priceHistoryObservations.length, 3);
 assert.equal(safe.opportunities[0].priceHistoryObservations[0].productId, 'item-123');
 assert.equal(safe.opportunities[0].priceHistoryObservations[0].observedAt, '2026-08-13T05:00:00.000Z');
 assert.equal(safe.opportunities[0].completedSales.length, 3);
+assert.equal(safe.opportunities[0].completedSales[0].productId, 'item-123');
 assert.equal(safe.opportunities[0].comps.soldCount, 3);
 assert.equal(safe.opportunities[0].liveReadiness.historyDisposition, 'validated-history');
 assert.equal(safe.opportunities[0].customerAlertEligible, false, 'alerts remain off by default after validation');
@@ -118,6 +120,29 @@ assert.equal(productContaminated.opportunities[0].priceHistoryObservations.lengt
 assert.deepEqual(productContaminated.opportunities[0].priceHistory, [49.99]);
 assert.equal(productContaminated.opportunities[0].liveReadiness.historyDisposition, 'shadow-quarantine');
 assert.equal(productContaminated.opportunities[0].customerAlertEligible, false, 'cross-product history contamination cannot unlock alerts');
+
+const resaleContaminated = buildCustomerLivePayload({
+  ...batch,
+  assessments: [{
+    ...batch.assessments[0],
+    completedSales: [
+      completedSales[0],
+      { ...completedSales[1], productId: 'different-item', price: 499 },
+      { ...completedSales[2], productId: null, price: 599 }
+    ],
+    comps: { productId: 'different-item', d30: 550, d60: 525, d90: 500, soldWindowDays: 90, activeListingCount: 10, currentAsks: [600] }
+  }]
+}, validation, { asOf, enableAlerts: true });
+assert.equal(resaleContaminated.opportunities[0].completedSales.length, 1, 'wrong-product and identity-less completed sales must be excluded');
+assert.equal(resaleContaminated.opportunities[0].completedSales[0].price, 89);
+assert.equal(resaleContaminated.opportunities[0].comps.soldCount, 1, 'sold depth must be recomputed from accepted product-bound sales');
+assert.equal(resaleContaminated.opportunities[0].comps.d30, null, 'cross-product precomputed sold comps must not reach the customer payload');
+assert.deepEqual(resaleContaminated.opportunities[0].comps.currentAsks, [], 'cross-product asking evidence must also be quarantined');
+assert.equal(resaleContaminated.opportunities[0].liveReadiness.resaleReady, false);
+assert.equal(resaleContaminated.opportunities[0].liveReadiness.conservativeProfit, 0, 'unbound resale evidence cannot authorize profit');
+assert.equal(resaleContaminated.opportunities[0].liveReadiness.conservativeRoi, 0, 'unbound resale evidence cannot authorize ROI');
+assert.equal(resaleContaminated.opportunities[0].customerAlertEligible, false, 'cross-product resale evidence cannot unlock alerts');
+assert.equal(resaleContaminated.alertsEnabled, false);
 
 const quarantined = buildCustomerLivePayload({
   ...batch,
@@ -176,13 +201,15 @@ const brightDataHistory = historyObservations.map((row, index) => ({
   source: { provider: 'bright-data' },
   price: [59.99, 54.99, 49.99][index]
 }));
+const brightDataSales = completedSales.map(row => ({ ...row, productId: 'hd-1001' }));
 const brightData = buildCustomerLivePayload({
   provider: 'brightdata',
   validationState: 'validated',
   assessments: [{
     ...batch.assessments[0],
     observation: brightDataObservation,
-    historyObservations: brightDataHistory
+    historyObservations: brightDataHistory,
+    completedSales: brightDataSales
   }]
 }, validation, { asOf, enableAlerts: true });
 assert.equal(brightData.provider, 'bright-data');
@@ -192,6 +219,7 @@ assert(brightData.opportunities[0].id.startsWith('bright-data-'));
 assert.equal(brightData.opportunities[0].storeId, '4121');
 assert.equal(brightData.opportunities[0].zip, '18360');
 assert.equal(brightData.opportunities[0].priceHistoryObservations.length, 3);
+assert.equal(brightData.opportunities[0].completedSales.length, 3);
 assert.equal(brightData.opportunities[0].customerAlertEligible, true);
 
 const provenanceMismatch = buildCustomerLivePayload({
