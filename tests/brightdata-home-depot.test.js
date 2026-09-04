@@ -3,8 +3,12 @@ const {
   HOME_DEPOT_DATASET_ID,
   planHomeDepotTrigger,
   buildHomeDepotTriggerRequest,
+  buildSnapshotRequest,
   normalizeHomeDepotRecords,
   triggerHomeDepotSnapshot,
+  getSnapshotProgress,
+  downloadSnapshotRecords,
+  collectHomeDepotShadowSnapshot,
   safeRequestLog,
   extractPrice
 } = require('../lib/brightdata-home-depot');
@@ -25,6 +29,12 @@ assert.equal(request.request.method, 'POST');
 assert.ok(request.request.url.includes(HOME_DEPOT_DATASET_ID));
 assert.ok(request.request.headers.Authorization.includes('test-secret'));
 assert.equal(JSON.parse(request.request.body)[0].zipcode, '18360');
+
+const progressRequest = buildSnapshotRequest({ apiToken: 'test-secret', snapshotId: 's_test123', kind: 'progress' });
+assert.ok(progressRequest.url.endsWith('/progress/s_test123'));
+const downloadRequest = buildSnapshotRequest({ apiToken: 'test-secret', snapshotId: 's_test123', kind: 'download' });
+assert.ok(downloadRequest.url.includes('/snapshot/s_test123?format=json'));
+assert.throws(() => buildSnapshotRequest({ apiToken: 'test-secret', snapshotId: '../bad' }), /snapshot ID/);
 
 const logged = safeRequestLog(request.request);
 assert.equal(logged.headers.Authorization, '[REDACTED]');
@@ -56,11 +66,11 @@ assert.notEqual(locationKey(normalized[0]), locationKey(normalized[1]), 'differe
     products: [products[0]],
     fetchImpl: async (url, options) => {
       captured = { url, options };
-      return { ok: true, status: 200, json: async () => ({ snapshot_id: 'snapshot-test-123' }) };
+      return { ok: true, status: 200, json: async () => ({ snapshot_id: 's_test123' }) };
     }
   });
   assert.equal(captured.options.redirect, 'error');
-  assert.equal(triggered.snapshotId, 'snapshot-test-123');
+  assert.equal(triggered.snapshotId, 's_test123');
   assert.equal(triggered.validationState, 'shadow-pending');
   assert.equal(triggered.alertsEnabled, false);
   assert.ok(!JSON.stringify(triggered).includes('test-secret'));
@@ -70,6 +80,36 @@ assert.notEqual(locationKey(normalized[0]), locationKey(normalized[1]), 'differe
     products: [products[0]],
     fetchImpl: async () => ({ ok: true, status: 200, json: async () => ({}) })
   }), /malformed trigger response/);
+
+  const progress = await getSnapshotProgress({
+    apiToken: 'test-secret', snapshotId: 's_test123',
+    fetchImpl: async () => ({ ok: true, status: 200, json: async () => ({ snapshot_id: 's_test123', dataset_id: HOME_DEPOT_DATASET_ID, status: 'ready' }) })
+  });
+  assert.equal(progress.ready, true);
+
+  const downloaded = await downloadSnapshotRecords({
+    apiToken: 'test-secret', snapshotId: 's_test123',
+    fetchImpl: async () => ({ ok: true, status: 200, json: async () => records })
+  });
+  assert.equal(downloaded.length, 2);
+
+  let call = 0;
+  const lifecycle = await collectHomeDepotShadowSnapshot({
+    apiToken: 'test-secret', products: [products[0]], observedAt: '2026-09-04T06:00:00Z',
+    fetchImpl: async (url) => {
+      call += 1;
+      if (call === 1) return { ok: true, status: 200, json: async () => ({ snapshot_id: 's_lifecycle123' }) };
+      if (url.includes('/progress/')) return { ok: true, status: 200, json: async () => ({ snapshot_id: 's_lifecycle123', dataset_id: HOME_DEPOT_DATASET_ID, status: call === 2 ? 'running' : 'ready' }) };
+      return { ok: true, status: 200, json: async () => ([records[0]]) };
+    }
+  });
+  assert.equal(lifecycle.ready, true);
+  assert.equal(lifecycle.validationState, 'shadow-review-required');
+  assert.equal(lifecycle.observationCount, 1);
+  assert.equal(lifecycle.alertsEnabled, false);
+  assert.equal(lifecycle.redistributable, false);
+  assert.equal(lifecycle.historyPromotionAllowed, false);
+  assert.equal(lifecycle.manualSourceCheckRequired, true);
 
   console.log('brightdata-home-depot tests passed');
 })().catch(error => {
