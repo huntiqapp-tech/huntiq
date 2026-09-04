@@ -1,0 +1,11 @@
+const assert=require('assert');
+const {assessDecisionEnvelope,compareDecisionEnvelopes}=require('../lib/decision-envelope');
+const strong=assessDecisionEnvelope({anomalyConfidence:92,resaleConfidence:88,evidenceConfidence:94,liquidityScore:80,executionConfidence:90,profit:120,roi:75,downsideProfit:55,downsideRoi:31});
+assert.equal(strong.verdict,'buy');assert.equal(strong.alertAction,'instant');assert.equal(strong.blocked,false);assert(strong.conservativeProfit<120&&strong.conservativeProfit>100);
+const weak=assessDecisionEnvelope({anomalyConfidence:90,resaleConfidence:18,evidenceConfidence:85,liquidityScore:70,executionConfidence:82,profit:180,roi:100,downsideProfit:60,downsideRoi:30});
+assert.equal(weak.blocked,true);assert.equal(weak.alertAction,'digest');assert(weak.reasons.includes('weak-resale-confidence'));assert(weak.reasons.includes('cross-signal-disagreement'));
+const downside=assessDecisionEnvelope({anomalyConfidence:85,resaleConfidence:80,evidenceConfidence:80,liquidityScore:75,executionConfidence:80,profit:90,roi:60,downsideProfit:-5,downsideRoi:-3});
+assert.equal(downside.verdict,'skip');assert(downside.reasons.includes('negative-downside-economics'));
+const ranked=compareDecisionEnvelopes([{id:'risky',anomalyConfidence:95,resaleConfidence:20,evidenceConfidence:90,executionConfidence:90,profit:300,roi:160,downsideProfit:40,downsideRoi:20},{id:'sound',anomalyConfidence:85,resaleConfidence:85,evidenceConfidence:85,liquidityScore:75,executionConfidence:85,profit:100,roi:60,downsideProfit:50,downsideRoi:30}]);
+assert.equal(ranked.best.id,'sound');
+console.log('decision-envelope tests passed');
