@@ -1,6 +1,6 @@
 'use strict';
 
-const { triggerHomeDepotSnapshot } = require('../lib/brightdata-home-depot');
+const { collectHomeDepotShadowSnapshot } = require('../lib/brightdata-home-depot');
 
 (async () => {
   const apiToken = process.env.BRIGHTDATA_API_TOKEN;
@@ -9,12 +9,30 @@ const { triggerHomeDepotSnapshot } = require('../lib/brightdata-home-depot');
   if (!apiToken) throw new Error('BRIGHTDATA_API_TOKEN is not available in this server-side runtime');
   if (!url) throw new Error('BRIGHTDATA_TEST_URL is required for an explicit Home Depot smoke-test target');
 
-  const result = await triggerHomeDepotSnapshot({
+  const result = await collectHomeDepotShadowSnapshot({
     apiToken,
     products: [{ url, zip }],
-    budget: { maxPerRun: 1, maxPerMonth: 5000 }
+    budget: { maxPerRun: 1, maxPerMonth: 5000 },
+    maxPolls: 6,
+    pollDelayMs: 10000
   });
-  console.log(JSON.stringify(result, null, 2));
+
+  const summary = {
+    ok: result.ok,
+    provider: result.provider,
+    datasetId: result.datasetId,
+    snapshotId: result.snapshotId,
+    ready: Boolean(result.ready),
+    requestCount: result.requestCount || 0,
+    recordCount: result.recordCount || 0,
+    observationCount: result.observationCount || 0,
+    validationState: result.validationState,
+    alertsEnabled: false,
+    redistributable: false,
+    historyPromotionAllowed: false,
+    manualSourceCheckRequired: result.manualSourceCheckRequired !== false
+  };
+  console.log(JSON.stringify(summary, null, 2));
 })().catch(error => {
   console.error(JSON.stringify({
     ok: false,
