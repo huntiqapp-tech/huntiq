@@ -47,9 +47,11 @@ const batch = {
 
 assert.throws(() => buildCustomerLivePayload({ ...batch, validationState: 'shadow' }, validation, { asOf }), /validated provider batch/);
 assert.throws(() => buildCustomerLivePayload(batch, { ...validation, manualSourceCheckPassed: false }, { asOf }), /manual source validation/);
+assert.throws(() => buildCustomerLivePayload({ ...batch, provider: 'unknown-provider' }, validation, { asOf }), /supported provider batch/);
 
 const safe = buildCustomerLivePayload(batch, validation, { asOf });
 assert.equal(safe.opportunities.length, 1);
+assert.equal(safe.provider, 'retailerapi');
 assert.equal(safe.opportunities[0].dataState, 'live');
 assert.equal(safe.opportunities[0].channel, 'online');
 assert.equal(safe.opportunities[0].completedSales.length, 3);
@@ -95,5 +97,45 @@ const cached = buildCustomerLivePayload({
 }, validation, { asOf, enableAlerts: true });
 assert.equal(cached.opportunities[0].dataState, 'cached');
 assert.equal(cached.opportunities[0].customerAlertEligible, false);
+
+const brightDataObservation = {
+  ...observation,
+  retailer: 'home-depot',
+  productId: 'hd-1001',
+  storeId: '4121',
+  zip: '18360',
+  source: {
+    ...observation.source,
+    provider: 'bright-data',
+    providerRecordId: 'snapshot-row-22',
+    rightsClass: 'licensed-customer-display',
+    retentionPolicy: 'contract-defined',
+    redistributionAllowed: true
+  }
+};
+const brightData = buildCustomerLivePayload({
+  provider: 'brightdata',
+  validationState: 'validated',
+  assessments: [{
+    ...batch.assessments[0],
+    observation: brightDataObservation
+  }]
+}, validation, { asOf, enableAlerts: true });
+assert.equal(brightData.provider, 'bright-data');
+assert.equal(brightData.opportunities.length, 1);
+assert.equal(brightData.opportunities[0].source.provider, 'bright-data');
+assert(brightData.opportunities[0].id.startsWith('bright-data-'));
+assert.equal(brightData.opportunities[0].storeId, '4121');
+assert.equal(brightData.opportunities[0].zip, '18360');
+assert.equal(brightData.opportunities[0].customerAlertEligible, true);
+
+const provenanceMismatch = buildCustomerLivePayload({
+  provider: 'bright-data',
+  validationState: 'validated',
+  assessments: [{ ...batch.assessments[0], observation }]
+}, validation, { asOf });
+assert.equal(provenanceMismatch.opportunities.length, 0);
+assert.equal(provenanceMismatch.rejected.length, 1);
+assert.match(provenanceMismatch.rejected[0].reason, /provider provenance mismatch/);
 
 console.log('customer live-payload tests passed');
