@@ -12,6 +12,9 @@ assert(out.resale.completedSaleOnly);
 assert(out.resale.marketValue>0);
 assert(out.economics.riskAdjustedProfit>0);
 assert(out.economics.riskAdjustedRoi>0);
+assert.equal(out.marketReality.soldMarketValue,out.resale.marketValue);
+assert.equal(out.marketReality.referencePriceAuthoritative,false);
+assert.equal(out.marketReality.verdict,'below-sold-market');
 assert(['strong-buy','buy','watch','skip'].includes(out.recommendation));
 const supplied=[{status:'sold',price:100,soldAt:'2026-08-30T18:00:00.000Z',matchScore:98,sourceConfidence:99,evidenceClass:'completed_sale'}];
 const custom=Pwa.evaluateForPwa({...deal,completedSales:supplied},legacy,{asOf});
@@ -20,4 +23,21 @@ assert.equal(custom.comparables.length,1);
 const liveWithoutSold=Pwa.evaluateForPwa({...deal,dataOrigin:'live',validationState:'validated'},legacy,{asOf});
 assert.equal(liveWithoutSold.demoComparables,false);
 assert.equal(liveWithoutSold.comparables.length,0,'live retailer data must never synthesize demo sold evidence');
+assert.equal(liveWithoutSold.marketReality.verdict,'sold-market-unknown');
+assert.equal(liveWithoutSold.marketReality.referencePriceAuthoritative,false);
+
+const falseDealComps=[
+  {status:'sold',price:62,soldAt:'2026-08-30T18:00:00.000Z',matchScore:98,sourceConfidence:99},
+  {status:'sold',price:60,soldAt:'2026-08-27T18:00:00.000Z',matchScore:98,sourceConfidence:99},
+  {status:'sold',price:59,soldAt:'2026-08-22T18:00:00.000Z',matchScore:98,sourceConfidence:99},
+  {status:'sold',price:61,soldAt:'2026-08-15T18:00:00.000Z',matchScore:98,sourceConfidence:99}
+];
+const falseDeal=Pwa.evaluateForPwa({...deal,price:69,msrp:160,listPrice:160,referencePrice:160,completedSales:falseDealComps},legacy,{asOf});
+assert.equal(falseDeal.marketReality.referencePrice,160);
+assert(falseDeal.marketReality.referenceDiscountPct>50,'retailer reference discount may be displayed as context');
+assert.equal(falseDeal.marketReality.referencePriceAuthoritative,false,'reference/MSRP must never be authoritative');
+assert.equal(falseDeal.marketReality.verdict,'above-sold-market','retail price above real sold-market value must be identified');
+assert(falseDeal.marketReality.marketSpread<0,'market spread must expose the lack of resale edge');
+assert.match(falseDeal.marketReality.note,/no positive spread/i);
+assert.equal(falseDeal.recommendation,'skip');
 console.log('pwa-opportunity tests passed');
