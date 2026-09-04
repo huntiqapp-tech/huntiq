@@ -3,7 +3,7 @@
 Last established from repository and product handoff: 2026-09-04. This is the living handoff and must be updated after meaningful work.
 
 ## CURRENT VERSION
-- Package: **0.9.80**
+- Package: **0.9.82**
 - Public PWA preview is functional but still intentionally uses demonstration opportunity data until rights-cleared live integrations are connected.
 - Offline cache: **`huntiq-public-v88`**.
 
@@ -45,6 +45,8 @@ Last established from repository and product handoff: 2026-09-04. This is the li
 - **v0.9.79 customer live-readiness integration:** `buildCustomerLivePayload` now evaluates every rights-cleared RetailerAPI assessment through the live-readiness gate. Incomplete evidence can remain visibly labeled for customer transparency, but cannot alert or expose conservative profit/ROI authority until validation succeeds.
 - **v0.9.80 inherited observation-integrity gate:** strict store/ZIP/channel/condition/scope/fulfillment identity handling is present and its GitHub workflow passed. Treat it as the final model-layer addition until authenticated provider evidence demonstrates a concrete unmet safety gap.
 - **Agent coordination:** `AGENTS.md` now makes provider validation and the customer live-data path the active execution queue. Additional speculative scoring/risk releases and unrelated retailer-research substitutes are explicitly paused.
+- **v0.9.81 Bright Data shadow lifecycle:** the bounded server-side path now triggers, polls and downloads a sanitized Home Depot snapshot, normalizes canonical observations, and remains non-redistributable, history-ineligible and alert-disabled pending manual review.
+- **v0.9.82 provider validation review:** a provider- and retailer-bound manual review promotes positive-price observations only when identity, source comparison, provenance and retention rights pass. Internal history permission remains separate from customer redistribution, and promoted observations remain alert-disabled.
 
 ## DATABASE / AUDIT LAYERS
 - `db/013_price_history_features.sql` — store-isolated sequential price features.
