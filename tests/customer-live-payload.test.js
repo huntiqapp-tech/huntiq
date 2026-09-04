@@ -28,9 +28,9 @@ const validation = {
   validatedAt: '2026-09-03T05:30:00.000Z'
 };
 const historyObservations = [
-  { price: 49.99, observedAt: '2026-08-13T05:00:00.000Z', channel: 'online', source: { provider: 'retailerapi' }, verified: true },
-  { price: 47.99, observedAt: '2026-08-20T05:00:00.000Z', channel: 'online', source: { provider: 'retailerapi' }, verified: true },
-  { price: 45.99, observedAt: '2026-08-27T05:00:00.000Z', channel: 'online', source: { provider: 'retailerapi' }, verified: true }
+  { productId: 'item-123', price: 49.99, observedAt: '2026-08-13T05:00:00.000Z', channel: 'online', source: { provider: 'retailerapi' }, verified: true },
+  { productId: 'item-123', price: 47.99, observedAt: '2026-08-20T05:00:00.000Z', channel: 'online', source: { provider: 'retailerapi' }, verified: true },
+  { productId: 'item-123', price: 45.99, observedAt: '2026-08-27T05:00:00.000Z', channel: 'online', source: { provider: 'retailerapi' }, verified: true }
 ];
 const batch = {
   provider: 'retailerapi',
@@ -62,6 +62,7 @@ assert.equal(safe.opportunities[0].dataState, 'live');
 assert.equal(safe.opportunities[0].channel, 'online');
 assert.deepEqual(safe.opportunities[0].priceHistory, [49.99, 47.99, 45.99]);
 assert.equal(safe.opportunities[0].priceHistoryObservations.length, 3);
+assert.equal(safe.opportunities[0].priceHistoryObservations[0].productId, 'item-123');
 assert.equal(safe.opportunities[0].priceHistoryObservations[0].observedAt, '2026-08-13T05:00:00.000Z');
 assert.equal(safe.opportunities[0].completedSales.length, 3);
 assert.equal(safe.opportunities[0].comps.soldCount, 3);
@@ -100,6 +101,23 @@ assert.equal(contaminatedHistory.opportunities[0].priceHistoryObservations.lengt
 assert.equal(contaminatedHistory.opportunities[0].liveReadiness.historyReady, false, 'claimed promoted counts cannot make one accepted timestamped row history-ready');
 assert.equal(contaminatedHistory.opportunities[0].liveReadiness.anomalyConfidence, 0, 'thin accepted history cannot retain anomaly confidence');
 assert.equal(contaminatedHistory.opportunities[0].customerAlertEligible, false, 'thin accepted history must remain fail-closed');
+
+const productContaminated = buildCustomerLivePayload({
+  ...batch,
+  assessments: [{
+    ...batch.assessments[0],
+    historyObservations: [
+      historyObservations[0],
+      { ...historyObservations[1], productId: 'different-item' },
+      { ...historyObservations[2], productId: null }
+    ],
+    historyEvidence: { historyPromoted: true, promotedCount: 3, anomalyConfidence: 82 }
+  }]
+}, validation, { asOf, enableAlerts: true });
+assert.equal(productContaminated.opportunities[0].priceHistoryObservations.length, 1, 'wrong-product and identity-less history rows must be excluded');
+assert.deepEqual(productContaminated.opportunities[0].priceHistory, [49.99]);
+assert.equal(productContaminated.opportunities[0].liveReadiness.historyDisposition, 'shadow-quarantine');
+assert.equal(productContaminated.opportunities[0].customerAlertEligible, false, 'cross-product history contamination cannot unlock alerts');
 
 const quarantined = buildCustomerLivePayload({
   ...batch,
@@ -151,6 +169,7 @@ const brightDataObservation = {
 };
 const brightDataHistory = historyObservations.map((row, index) => ({
   ...row,
+  productId: 'hd-1001',
   retailer: 'home-depot',
   storeId: '4121',
   channel: 'online',
