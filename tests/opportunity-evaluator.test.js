@@ -44,4 +44,13 @@ const base={
   assert.equal(out.evidence.alertEligible,false,'illiquid inventory should not trigger a buy alert');
   assert.equal(out.recommendation,'skip');
 }
+{
+  const comparables=[sold(62,2),sold(60,5),sold(61,10),sold(59,18),sold(60,27),sold(63,40),sold(58,55),sold(61,78)];
+  const withoutMsrp=evaluateOpportunity({...base,opportunity:{...base.opportunity,price:69},comparables});
+  const withInflatedMsrp=evaluateOpportunity({...base,opportunity:{...base.opportunity,price:69,msrp:160,listPrice:160,regularPrice:160,compareAtPrice:160},comparables});
+  assert.equal(withInflatedMsrp.resale.marketValue,withoutMsrp.resale.marketValue,'MSRP/list price must not influence current resale market value');
+  assert.deepEqual(withInflatedMsrp.economics,withoutMsrp.economics,'MSRP/list price must not influence profit or ROI economics');
+  assert.equal(withInflatedMsrp.recommendation,withoutMsrp.recommendation,'MSRP/list price must not upgrade a BUY/WATCH/SKIP recommendation');
+  assert.equal(withInflatedMsrp.recommendation,'skip','a $69 acquisition against roughly $60 completed-sale value must not be called a deal because MSRP says $160');
+}
 console.log('opportunity-evaluator tests passed');
