@@ -1,0 +1,61 @@
+const assert=require('assert');
+const gate=require('../lib/observation-integrity');
+
+const target={retailer:'Best Buy',sku:'TV1',storeId:'PA1',zip:'18301',channel:'store',condition:'new',priceScope:'public',fulfillment:'pickup'};
+const exact=i=>({...target,price:399+i});
+
+let r=gate.assessObservationIntegrity({
+  target,
+  history:[exact(0),exact(1),exact(2),exact(3),exact(4)],
+  historyEvidence:{anomalyConfidence:90},
+  resaleEvidence:{resaleConfidence:88,matchConfidence:90},
+  economics:{expectedProfit:120,roi:30},
+  decision:{alertEligible:true}
+});
+assert.strictEqual(r.historyReady,true);
+assert(r.integrityScore>=95);
+assert(r.conservativeProfit>90);
+assert(['instant','standard'].includes(r.alertAction));
+
+r=gate.assessObservationIntegrity({
+  target,
+  history:[exact(0),exact(1),exact(2),{...target,storeId:'PA2'},{...target,channel:'delivery'},{...target,condition:'open box'}],
+  historyEvidence:{anomalyConfidence:90},
+  resaleEvidence:{resaleConfidence:90,matchConfidence:90},
+  economics:{expectedProfit:150,roi:40},
+  decision:{alertEligible:true}
+});
+assert(r.contaminationRatio>=.5);
+assert(r.blockers.includes('history-identity-contamination'));
+assert.strictEqual(r.alertEligible,false);
+
+r=gate.assessObservationIntegrity({
+  target,
+  history:[exact(0),exact(1),{retailer:'Best Buy',sku:'TV1',price:401},{retailer:'Best Buy',sku:'TV1',price:402}],
+  historyEvidence:{anomalyConfidence:99},
+  resaleEvidence:{resaleConfidence:95},
+  economics:{expectedProfit:500,roi:200},
+  decision:{alertEligible:true}
+});
+assert.strictEqual(r.historyReady,false);
+assert.strictEqual(r.ambiguousCount,2);
+assert(r.blockers.includes('history-identity-incomplete'));
+assert.strictEqual(r.alertAction,'suppressed');
+
+r=gate.assessObservationIntegrity({
+  target,
+  history:[exact(0),exact(1),exact(2),exact(3),exact(4)],
+  historyEvidence:{anomalyConfidence:95},
+  resaleEvidence:{resaleConfidence:85,matchConfidence:35},
+  economics:{expectedProfit:100,roi:25},
+  decision:{alertEligible:true}
+});
+assert(r.adjustedResaleConfidence<50);
+assert.strictEqual(r.alertEligible,false);
+assert(r.blockers.includes('resale-confidence-insufficient'));
+
+assert.strictEqual(gate.sameIdentity(target,{...target,price:1}),true);
+assert.strictEqual(gate.sameIdentity(target,{...target,priceScope:'member'}),false);
+assert.strictEqual(gate.sameIdentity(target,{retailer:'Best Buy',sku:'TV1'}),false);
+assert.strictEqual(gate.classifyIdentity(target,{retailer:'Best Buy',sku:'TV1'}).status,'ambiguous');
+console.log('observation integrity tests passed');
