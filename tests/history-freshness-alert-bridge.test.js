@@ -6,7 +6,7 @@ const base={id:'temporal-1',price:50,marketValue:150,flipScore:100,evidenceQuali
 
 const fresh=bridge.shouldAlert(base,permissive);
 assert.equal(fresh.alert,true,'fresh retail history and resale comps should remain alert eligible under permissive economics');
-assert.equal(fresh.historyFreshnessScore,90);assert.equal(fresh.resaleFreshnessScore,90);assert.equal(fresh.temporalTrustScore,90);assert.equal(fresh.anomalyConfidence,90,'PWA anomaly authority must not exceed current history freshness authority');
+assert.equal(fresh.historyFreshnessScore,90);assert.equal(fresh.resaleFreshnessScore,90);assert.equal(fresh.temporalTrustScore,90);assert.equal(fresh.temporalEvidenceComplete,true);assert.equal(fresh.anomalyConfidence,90,'PWA anomaly authority must not exceed current history freshness authority');
 
 const staleHistory=bridge.shouldAlert({...base,historyAssessment:{freshnessScore:20,historyStale:true,label:'stale-history'}},permissive);
 assert.equal(staleHistory.alert,false,'stale price history must hard-stop the customer alert even when headline profit is large');
@@ -17,6 +17,16 @@ const staleResale=bridge.shouldAlert({...base,resale:{...base.resale,compFreshne
 assert.equal(staleResale.alert,false,'stale completed-sale comparison evidence must not preserve an urgent PWA flip');
 assert(staleResale.reasons.includes('stale-resale-comps'));assert(staleResale.priority<=29);
 
+const missingHistory=bridge.shouldAlert({...base,historyAssessment:undefined},permissive);
+assert.equal(missingHistory.historyFreshnessScore,0,'unknown price-history freshness must never default to perfect freshness');
+assert.equal(missingHistory.temporalEvidence.historyFreshnessKnown,false);assert.equal(missingHistory.temporalEvidenceComplete,false);assert.equal(missingHistory.temporalTrustScore,0);assert.equal(missingHistory.alert,false);assert(missingHistory.reasons.includes('missing-price-history-freshness'));assert(missingHistory.priority<=19);assert.equal(missingHistory.anomalyConfidence,0);
+assert.equal(missingHistory.marketplaceEconomics.evidenceAdjustedProfit,0,'unknown temporal evidence must remove profit authority at the customer boundary');assert.equal(missingHistory.marketplaceEconomics.evidenceAdjustedRoiPct,0,'unknown temporal evidence must remove ROI authority at the customer boundary');
+
+const missingResale=bridge.shouldAlert({...base,resale:{marketValue:150,resaleConfidence:95}},permissive);
+assert.equal(missingResale.resaleFreshnessScore,0,'unknown completed-sale freshness must never default to perfect freshness');
+assert.equal(missingResale.temporalEvidence.resaleFreshnessKnown,false);assert.equal(missingResale.temporalTrustScore,0);assert.equal(missingResale.alert,false);assert(missingResale.reasons.includes('missing-resale-comp-freshness'));assert(missingResale.priority<=19);
+assert.equal(missingResale.marketplaceEconomics.evidenceAdjustedProfit,0);assert.equal(missingResale.marketplaceEconomics.evidenceAdjustedRoiPct,0);
+
 const baselineFraction={...base,historyAssessment:undefined,priceBaseline:{freshnessScore:.6,confidence:80}};
 assert.equal(bridge.historyFreshnessScore(baselineFraction),60,'robust-baseline fractional freshness must normalize to the PWA 0-100 scale');
-console.log('history freshness alert bridge tests passed',{fresh:fresh.temporalEvidence,staleHistory:staleHistory.temporalEvidence,staleResale:staleResale.temporalEvidence});
+console.log('history freshness alert bridge tests passed',{fresh:fresh.temporalEvidence,staleHistory:staleHistory.temporalEvidence,staleResale:staleResale.temporalEvidence,missingHistory:missingHistory.temporalEvidence,missingResale:missingResale.temporalEvidence});
