@@ -3,9 +3,9 @@
 Last established from repository and product handoff: 2026-09-04. This is the living handoff and must be updated after meaningful work.
 
 ## CURRENT VERSION
-- Package: **0.9.79**
+- Package: **0.9.80**
 - Public PWA preview is functional but still intentionally uses demonstration opportunity data until rights-cleared live integrations are connected.
-- Offline cache: **`huntiq-public-v86`**.
+- Offline cache: **`huntiq-public-v88`**.
 
 ## DONE / PRESENT
 - Mobile-first installable PWA with offline service worker and browser-persistent watchlist.
@@ -43,6 +43,8 @@ Last established from repository and product handoff: 2026-09-04. This is the li
 - **v0.9.77 provider validation reset:** Bright Data Home Depot triggering now has a bounded server-only smoke path. It requires an explicit product target, blocks redirects, rejects malformed trigger responses, prints no token or request headers, and remains shadow-only with alerts disabled.
 - **v0.9.78 inherited live readiness gate:** unvalidated provider observations are quarantined from alerting until authenticated lookup, manual source checking, customer-display rights, validated history, verified resale evidence and positive downside economics are present.
 - **v0.9.79 customer live-readiness integration:** `buildCustomerLivePayload` now evaluates every rights-cleared RetailerAPI assessment through the live-readiness gate. Incomplete evidence can remain visibly labeled for customer transparency, but cannot alert or expose conservative profit/ROI authority until validation succeeds.
+- **v0.9.80 inherited observation-integrity gate:** strict store/ZIP/channel/condition/scope/fulfillment identity handling is present and its GitHub workflow passed. Treat it as the final model-layer addition until authenticated provider evidence demonstrates a concrete unmet safety gap.
+- **Agent coordination:** `AGENTS.md` now makes provider validation and the customer live-data path the active execution queue. Additional speculative scoring/risk releases and unrelated retailer-research substitutes are explicitly paused.
 
 ## DATABASE / AUDIT LAYERS
 - `db/013_price_history_features.sql` — store-isolated sequential price features.
