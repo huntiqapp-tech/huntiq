@@ -1,0 +1,27 @@
+create table if not exists evidence_freshness_assessments (
+  id integer primary key,
+  retailer text not null,
+  sku text not null,
+  store_id text,
+  observed_at text not null,
+  acquisition_age_minutes real,
+  history_newest_age_days real,
+  history_median_age_days real,
+  resale_newest_age_days real,
+  resale_median_age_days real,
+  acquisition_freshness real,
+  price_history_freshness real,
+  resale_freshness real,
+  overall_freshness real,
+  adjusted_anomaly_confidence real,
+  adjusted_resale_confidence real,
+  resale_haircut_pct real,
+  freshness_adjusted_resale real,
+  freshness_adjusted_profit real,
+  freshness_adjusted_roi real,
+  blocked integer not null default 0,
+  alert_action text not null,
+  reasons_json text not null default '[]',
+  created_at text not null default current_timestamp
+);
+create index if not exists idx_evidence_freshness_lookup on evidence_freshness_assessments(retailer,sku,store_id,observed_at);
