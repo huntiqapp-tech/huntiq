@@ -1,11 +1,11 @@
 # HUNTIQ — Project Status
 
-Last established from repository and product handoff: 2026-09-03. This is the living handoff and must be updated after meaningful work.
+Last established from repository and product handoff: 2026-09-04. This is the living handoff and must be updated after meaningful work.
 
 ## CURRENT VERSION
-- Package: **0.9.62**
+- Package: **0.9.77**
 - Public PWA preview is functional but still intentionally uses demonstration opportunity data until rights-cleared live integrations are connected.
-- Offline cache: **`huntiq-public-v73`**.
+- Offline cache: **`huntiq-public-v86`**.
 
 ## DONE / PRESENT
 - Mobile-first installable PWA with offline service worker and browser-persistent watchlist.
@@ -39,6 +39,8 @@ Last established from repository and product handoff: 2026-09-03. This is the li
 - **v0.9.60 inherited mainline:** unified opportunity-confidence scoring and Deal Coach display are present from direct mainline development. Demonstration data remains capped and alert-ineligible. Additional scoring work is paused while the rights-cleared retailer scraper and authenticated RetailerAPI validation are the priority.
 - **v0.9.61 retailer scraper foundation:** the server-only scraper accepts only explicit HTTPS host allowlists, rejects credentials/private targets/redirects/zero prices/stale or future observations, and extracts public JSON-LD or price metadata into canonical shadow observations. A dedicated Home Depot adapter preserves store/ZIP/online identity; the batch runner enforces usage limits, deduplicates observations, records bounded raw provenance and hard-disables alerts and redistribution.
 - **v0.9.62 cross-source evidence agreement:** `lib/evidence-agreement.js` scores agreement between corroborating retailer prices, resale estimates and profit/ROI scenarios. Large retailer-price spread, resale-source spread or sign-changing ROI outcomes create explicit blockers; unified opportunity confidence fails closed and urgent alerts are suppressed rather than averaging conflicts away. The Deal Coach can surface the agreement score on opportunity cards.
+- **v0.9.63-v0.9.76 inherited mainline:** additional opportunity range, execution confidence, freshness, ranking, momentum, clearance, inventory and resale-risk models are present. These releases are retained, but further scoring/risk work is paused. Provider validation and the customer-facing live-data path are the approved priorities.
+- **v0.9.77 provider validation reset:** Bright Data Home Depot triggering now has a bounded server-only smoke path. It requires an explicit product target, blocks redirects, rejects malformed trigger responses, prints no token or request headers, and remains shadow-only with alerts disabled.
 
 ## DATABASE / AUDIT LAYERS
 - `db/013_price_history_features.sql` — store-isolated sequential price features.
@@ -110,6 +112,7 @@ Last established from repository and product handoff: 2026-09-03. This is the li
 ## NEXT — HIGH PRIORITY
 - Run the Home Depot adapter only in a trusted server runtime after an explicit terms/robots review; compare sanitized shadow output against the source page before considering any retention or customer display.
 - Make the existing RetailerAPI key available to the trusted server runtime as `RETAILERAPI_KEY` and run `npm run smoke:retailerapi`; never place the key in the public repository or browser bundle.
+- Make the Bright Data token available to the trusted server runtime as `BRIGHTDATA_API_TOKEN`, set an explicit `BRIGHTDATA_TEST_URL` and optional five-digit `BRIGHTDATA_TEST_ZIP`, then run `npm run smoke:brightdata`. The smoke run is capped at one record and must remain shadow-only until its sanitized snapshot is manually checked.
 - Manually validate a representative RetailerAPI sample against source retailer pages before promoting shadow observations or enabling alerts.
 - Run authenticated RetailerAPI lookup and manual source-page validation, then change only approved observations from `shadow-live` to validated history; keep alerts disabled until that evidence is recorded.
 - After authenticated RetailerAPI smoke/manual validation, pass approved assessments through `buildCustomerLivePayload` and inject its opportunities as `HUNTIQ_CUSTOMER_OPPORTUNITIES`; keep `enableAlerts` false through the first validation pass.

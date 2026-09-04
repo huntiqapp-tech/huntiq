@@ -4,6 +4,7 @@ const {
   planHomeDepotTrigger,
   buildHomeDepotTriggerRequest,
   normalizeHomeDepotRecords,
+  triggerHomeDepotSnapshot,
   safeRequestLog,
   extractPrice
 } = require('../lib/brightdata-home-depot');
@@ -48,4 +49,30 @@ assert.equal(normalized[0].source.datasetId, HOME_DEPOT_DATASET_ID);
 assert.equal(normalized[0].source.rightsClass, 'internal-only');
 assert.notEqual(locationKey(normalized[0]), locationKey(normalized[1]), 'different ZIP prices must remain isolated');
 
-console.log('brightdata-home-depot tests passed');
+(async () => {
+  let captured;
+  const triggered = await triggerHomeDepotSnapshot({
+    apiToken: 'test-secret',
+    products: [products[0]],
+    fetchImpl: async (url, options) => {
+      captured = { url, options };
+      return { ok: true, status: 200, json: async () => ({ snapshot_id: 'snapshot-test-123' }) };
+    }
+  });
+  assert.equal(captured.options.redirect, 'error');
+  assert.equal(triggered.snapshotId, 'snapshot-test-123');
+  assert.equal(triggered.validationState, 'shadow-pending');
+  assert.equal(triggered.alertsEnabled, false);
+  assert.ok(!JSON.stringify(triggered).includes('test-secret'));
+
+  await assert.rejects(() => triggerHomeDepotSnapshot({
+    apiToken: 'test-secret',
+    products: [products[0]],
+    fetchImpl: async () => ({ ok: true, status: 200, json: async () => ({}) })
+  }), /malformed trigger response/);
+
+  console.log('brightdata-home-depot tests passed');
+})().catch(error => {
+  console.error(error);
+  process.exitCode = 1;
+});
