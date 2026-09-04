@@ -3,7 +3,7 @@
 Last established from repository and product handoff: 2026-09-04. This is the living handoff and must be updated after meaningful work.
 
 ## CURRENT VERSION
-- Package: **0.9.77**
+- Package: **0.9.79**
 - Public PWA preview is functional but still intentionally uses demonstration opportunity data until rights-cleared live integrations are connected.
 - Offline cache: **`huntiq-public-v86`**.
 
@@ -41,6 +41,8 @@ Last established from repository and product handoff: 2026-09-04. This is the li
 - **v0.9.62 cross-source evidence agreement:** `lib/evidence-agreement.js` scores agreement between corroborating retailer prices, resale estimates and profit/ROI scenarios. Large retailer-price spread, resale-source spread or sign-changing ROI outcomes create explicit blockers; unified opportunity confidence fails closed and urgent alerts are suppressed rather than averaging conflicts away. The Deal Coach can surface the agreement score on opportunity cards.
 - **v0.9.63-v0.9.76 inherited mainline:** additional opportunity range, execution confidence, freshness, ranking, momentum, clearance, inventory and resale-risk models are present. These releases are retained, but further scoring/risk work is paused. Provider validation and the customer-facing live-data path are the approved priorities.
 - **v0.9.77 provider validation reset:** Bright Data Home Depot triggering now has a bounded server-only smoke path. It requires an explicit product target, blocks redirects, rejects malformed trigger responses, prints no token or request headers, and remains shadow-only with alerts disabled.
+- **v0.9.78 inherited live readiness gate:** unvalidated provider observations are quarantined from alerting until authenticated lookup, manual source checking, customer-display rights, validated history, verified resale evidence and positive downside economics are present.
+- **v0.9.79 customer live-readiness integration:** `buildCustomerLivePayload` now evaluates every rights-cleared RetailerAPI assessment through the live-readiness gate. Incomplete evidence can remain visibly labeled for customer transparency, but cannot alert or expose conservative profit/ROI authority until validation succeeds.
 
 ## DATABASE / AUDIT LAYERS
 - `db/013_price_history_features.sql` — store-isolated sequential price features.
