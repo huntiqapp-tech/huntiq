@@ -144,6 +144,26 @@ assert.equal(resaleContaminated.opportunities[0].liveReadiness.conservativeRoi, 
 assert.equal(resaleContaminated.opportunities[0].customerAlertEligible, false, 'cross-product resale evidence cannot unlock alerts');
 assert.equal(resaleContaminated.alertsEnabled, false);
 
+const futureDatedSales = buildCustomerLivePayload({
+  ...batch,
+  assessments: [{
+    ...batch.assessments[0],
+    completedSales: [
+      completedSales[0],
+      { ...completedSales[1], price: 499, soldAt: '2026-09-03T05:30:00.000Z' },
+      { ...completedSales[2], price: 599, soldAt: '2026-09-04T05:00:00.000Z' }
+    ]
+  }]
+}, validation, { asOf, enableAlerts: true });
+assert.equal(futureDatedSales.opportunities[0].completedSales.length, 1, 'completed sales at or after the retail observation must be quarantined');
+assert.equal(futureDatedSales.opportunities[0].completedSales[0].price, 89);
+assert.equal(futureDatedSales.opportunities[0].comps.soldCount, 1, 'future sales cannot inflate resale depth');
+assert.equal(futureDatedSales.opportunities[0].liveReadiness.resaleReady, false, 'future sales cannot establish resale readiness');
+assert.equal(futureDatedSales.opportunities[0].liveReadiness.conservativeProfit, 0, 'future sales cannot authorize customer profit');
+assert.equal(futureDatedSales.opportunities[0].liveReadiness.conservativeRoi, 0, 'future sales cannot authorize customer ROI');
+assert.equal(futureDatedSales.opportunities[0].customerAlertEligible, false, 'future resale evidence cannot unlock alerts');
+assert.equal(futureDatedSales.alertsEnabled, false);
+
 const quarantined = buildCustomerLivePayload({
   ...batch,
   assessments: [{ ...batch.assessments[0], historyEvidence: { historyPromoted: false, promotedCount: 0 } }]
