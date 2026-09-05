@@ -1,0 +1,89 @@
+name: HUNTIQ agent review handoff
+
+on:
+  workflow_run:
+    workflows: ["HUNTIQ tests"]
+    types: [completed]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+env:
+  MAX_AUTOMATED_FIX_ATTEMPTS: '2'
+
+jobs:
+  prepare-review:
+    name: Prepare AI review packet
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact tested revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+
+      - name: Build review packet
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          RUN_URL: ${{ github.event.workflow_run.html_url }}
+          PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .huntiq-review
+          {
+            echo "repository=$REPOSITORY"
+            echo "head_sha=$HEAD_SHA"
+            echo "head_branch=$HEAD_BRANCH"
+            echo "workflow_run=$RUN_URL"
+            echo "pr_number=${PR_NUMBER:-}"
+            echo "max_automated_fix_attempts=$MAX_AUTOMATED_FIX_ATTEMPTS"
+            echo "auto_merge=false"
+          } > .huntiq-review/metadata.txt
+
+          if [[ -n "${PR_NUMBER:-}" ]]; then
+            gh pr view "$PR_NUMBER" --repo "$REPOSITORY" --json number,title,url,baseRefName,headRefName,headRefOid,changedFiles,additions,deletions > .huntiq-review/pr.json
+            gh pr diff "$PR_NUMBER" --repo "$REPOSITORY" > .huntiq-review/pr.diff
+          else
+            printf '{"warning":"workflow_run did not expose a pull request number"}\n' > .huntiq-review/pr.json
+            : > .huntiq-review/pr.diff
+          fi
+
+          cat > .huntiq-review/REVIEW_INSTRUCTIONS.md <<'EOF'
+          # HUNTIQ automated review contract
+
+          Review the tested PR revision only. Do not modify or merge `main`.
+
+          Priorities:
+          1. Customer-facing evidence must fail closed when authority/provenance is missing or incomplete.
+          2. Completed sales, not asking prices, drive resale valuation.
+          3. Retailer price history remains retailer + product + location/channel specific.
+          4. Promotions/rewards/rebates never contaminate raw shelf-price history.
+          5. Affiliate value never influences Flip Score or deal ranking.
+          6. Credentials and secrets never enter source, logs, browser code, or the PWA.
+          7. Verify integration paths, not only isolated helper tests.
+
+          A future cloud reviewer may propose fixes on the PR branch, but automated fix loops are capped at two attempts and auto-merge remains disabled.
+          EOF
+
+      - name: Upload review packet
+        uses: actions/upload-artifact@v4
+        with:
+          name: huntiq-ai-review-${{ github.event.workflow_run.head_sha }}
+          path: .huntiq-review/
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: AI reviewer connection status
+        run: |
+          echo 'CI handoff packet created successfully.'
+          echo 'Cloud AI execution is intentionally disabled until a scoped provider credential is configured in GitHub Actions secrets.'
+          echo 'No desktop session is required for this workflow.'
