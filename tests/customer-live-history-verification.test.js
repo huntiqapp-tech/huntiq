@@ -11,9 +11,9 @@ const unverified=[
   {...verified,price:249.99,observedAt:'2026-08-25T03:00:00.000Z',verified:undefined}
 ];
 const completedSales=[
- {productId:'bb-101',status:'sold',price:99,soldAt:'2026-09-04T02:00:00.000Z'},
- {productId:'bb-101',status:'completed',price:95,soldAt:'2026-09-03T02:00:00.000Z'},
- {productId:'bb-101',status:'fulfilled',price:97,soldAt:'2026-09-02T02:00:00.000Z'}
+ {productId:'bb-101',status:'sold',price:99,soldAt:'2026-09-04T02:00:00.000Z',verified:true},
+ {productId:'bb-101',status:'completed',price:95,soldAt:'2026-09-03T02:00:00.000Z',verified:true},
+ {productId:'bb-101',status:'fulfilled',price:97,soldAt:'2026-09-02T02:00:00.000Z',verified:true}
 ];
 const batch={provider:'retailerapi',validationState:'validated',assessments:[{observation,historyObservations:[verified,...unverified],completedSales,historyEvidence:{historyPromoted:true,promotedCount:3,anomalyConfidence:95},resaleConfidence:90,economics:{expectedProfit:40,roi:80,downsideProfit:25,downsideRoi:50},opportunity:{evidence:{alertEligible:true}}}]};
 const result=buildCustomerLivePayload(batch,validation,{asOf,enableAlerts:true});
