@@ -1,5 +1,14 @@
 -- HUNTIQ v0.9.108 customer PWA authority gate
 -- Audits the final browser visibility boundary so a PWA cannot re-promote evidence that the customer authority layer withheld.
+--
+-- PERSISTENCE STATUS: schema-only, like every other table in this db/ directory as of
+-- v0.9.109 (see docs/data-flow-boundaries.md, "Schema persistence status"). This repository
+-- has no database client or writer of any kind; the JS in lib/ computes the same authority
+-- flags this table's columns describe (lib/pwa-data-state.js resolveCustomerDataState(),
+-- lib/customer-evidence-authority.js) and enforces them in-process, but nothing currently
+-- inserts rows here. Treat this table as the intended audit-trail *contract* for a future
+-- service-layer writer, not as an active log -- do not build alerting, reporting, or
+-- compliance checks against it until a writer exists and is documented.
 
 create table if not exists customer_pwa_authority_gate_audit (
   id bigserial primary key,

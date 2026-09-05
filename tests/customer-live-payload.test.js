@@ -15,7 +15,8 @@ const completedSales = [
  {productId:'item-123',status:'completed',price:91,soldAt:'2026-09-01T05:00:00.000Z',verified:true},
  {productId:'item-123',status:'fulfilled',price:87,soldAt:'2026-08-31T05:00:00.000Z',verified:true}
 ];
-const assessment = { observation, historyObservations, completedSales, historyEvidence:{historyPromoted:true,promotedCount:3,anomalyConfidence:82}, resaleConfidence:78, economics:{expectedProfit:31,roi:77,downsideProfit:18,downsideRoi:45}, opportunity:{evidence:{alertEligible:true}} };
+const comps = { productId:'item-123', d30:75, d60:73, d90:70, soldWindowDays:90, verified:true };
+const assessment = { observation, historyObservations, completedSales, comps, historyEvidence:{historyPromoted:true,promotedCount:3,anomalyConfidence:82}, resaleConfidence:78, economics:{expectedProfit:31,roi:77,downsideProfit:18,downsideRoi:45}, opportunity:{evidence:{alertEligible:true}} };
 const batch = { provider:'retailerapi', validationState:'validated', assessments:[assessment] };
 
 assert.throws(()=>buildCustomerLivePayload({...batch,validationState:'shadow'},validation,{asOf}),/validated provider batch/);
@@ -32,6 +33,7 @@ assert.equal(safe.opportunities[0].customerAlertEligible,false);
 
 const enabled=buildCustomerLivePayload(batch,validation,{asOf,enableAlerts:true});
 assert.equal(enabled.opportunities[0].customerAlertEligible,true);
+assert.equal(enabled.opportunities[0].evidenceAuthority.notificationAuthoritative,true,'fully authorized evidence must be notification-authoritative');
 assert.equal(enabled.alertsEnabled,true);
 
 const contaminatedHistory=buildCustomerLivePayload({...batch,assessments:[{...assessment,historyObservations:[historyObservations[0],{...historyObservations[1],channel:'store'},{...historyObservations[2],observedAt:observation.observedAt}],historyEvidence:{historyPromoted:true,promotedCount:99,anomalyConfidence:82}}]},validation,{asOf,enableAlerts:true});
@@ -68,7 +70,8 @@ assert.equal(cached.opportunities[0].customerAlertEligible,false);
 const bdObs={...observation,retailer:'home-depot',productId:'hd-1001',storeId:'4121',zip:'18360',source:{...observation.source,provider:'bright-data',providerRecordId:'snapshot-row-22'}};
 const bdHistory=historyObservations.map(row=>({...row,productId:'hd-1001',retailer:'home-depot',storeId:'4121',source:{provider:'bright-data'}}));
 const bdSales=completedSales.map(row=>({...row,productId:'hd-1001'}));
-const brightData=buildCustomerLivePayload({provider:'brightdata',validationState:'validated',assessments:[{...assessment,observation:bdObs,historyObservations:bdHistory,completedSales:bdSales}]},validation,{asOf,enableAlerts:true});
+const bdComps={...comps,productId:'hd-1001'};
+const brightData=buildCustomerLivePayload({provider:'brightdata',validationState:'validated',assessments:[{...assessment,observation:bdObs,historyObservations:bdHistory,completedSales:bdSales,comps:bdComps}]},validation,{asOf,enableAlerts:true});
 assert.equal(brightData.provider,'bright-data');
 assert.equal(brightData.opportunities[0].completedSales.length,3);
 assert.equal(brightData.opportunities[0].customerAlertEligible,true);
