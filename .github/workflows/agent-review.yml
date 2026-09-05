@@ -75,8 +75,12 @@ jobs:
           6. Credentials and secrets never enter source, logs, browser code, or the PWA.
           7. Verify integration paths, not only isolated helper tests.
 
-          Automated fix loops are capped at two attempts and are not yet enabled in this
-          version. Auto-merge remains disabled.
+          For same-repository autonomous `ai/issue-*` PRs bootstrapped from OWNER-authored
+          `[AI BUILD]` issues, automated BLOCK repairs are enabled and capped at exactly two
+          attempts. The repair workflow must verify the reviewed SHA, same-repo branch,
+          OWNER-authored source issue, protected workflow-file diff, and server-side attempt
+          labels before it may write. Agents never merge `main`; auto-merge remains disabled
+          and the project manager is the final merge gate.
           EOF
 
       - name: Upload review packet
@@ -97,8 +101,6 @@ jobs:
       id-token: write
       contents: read
     steps:
-      # Check out only the trusted default-branch revision that owns this workflow.
-      # Never check out the PR head in this credential-bearing job.
       - name: Checkout trusted reviewer only
         uses: actions/checkout@v4
         with:
@@ -186,4 +188,4 @@ jobs:
           set -euo pipefail
           gh pr comment "$PR_NUMBER" --repo "$REPOSITORY" --body-file .huntiq-review-result/comment.md
           echo "Posted review (verdict: $(cat .huntiq-review-result/verdict.txt)) to PR #$PR_NUMBER."
-          echo "This workflow never merges or auto-fixes anything; auto-merge remains disabled."
+          echo "This workflow never merges anything; auto-merge remains disabled."
