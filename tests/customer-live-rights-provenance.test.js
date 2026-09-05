@@ -12,12 +12,34 @@ const completedSales = [
   {productId:'rights-1',status:'sold',price:92,soldAt:'2026-09-03T04:00:00.000Z',verified:true},
   {productId:'rights-1',status:'sold',price:88,soldAt:'2026-09-02T04:00:00.000Z',verified:true}
 ];
-const assessment = { observation, historyObservations, completedSales, historyEvidence:{historyPromoted:true,promotedCount:3,anomalyConfidence:90}, resaleConfidence:90, economics:{expectedProfit:50,roi:125,downsideProfit:30,downsideRoi:75}, opportunity:{evidence:{alertEligible:true}} };
+const comps = { productId:'rights-1', d30:91, d60:89, d90:87, soldWindowDays:30, activeListingCount:5, currentAsks:[99,105] };
+const assessment = { observation, historyObservations, completedSales, comps, referencePrice:80, historyEvidence:{historyPromoted:true,promotedCount:3,anomalyConfidence:90}, resaleConfidence:90, economics:{expectedProfit:50,roi:125,downsideProfit:30,downsideRoi:75}, opportunity:{evidence:{alertEligible:true}} };
 const batch = a => ({provider:'retailerapi',validationState:'validated',assessments:[a]});
 
 const valid = buildCustomerLivePayload(batch(assessment), validation, {asOf,enableAlerts:true});
 assert.equal(valid.opportunities.length,1);
 assert.equal(valid.opportunities[0].customerAlertEligible,true,'explicit rights and retention provenance may reach customer alerts when all other evidence is ready');
+assert.equal(valid.opportunities[0].referencePrice,80,'validated history may expose the anomaly reference price');
+assert.equal(valid.opportunities[0].comps.authoritative,true,'three verified completed sales may authorize aggregate resale comps');
+assert.equal(valid.opportunities[0].comps.d30,91);
+
+const shallowHistory = buildCustomerLivePayload(batch({...assessment,historyObservations:historyObservations.slice(0,2),historyEvidence:{historyPromoted:true,promotedCount:3,anomalyConfidence:90}}), validation, {asOf,enableAlerts:true});
+assert.equal(shallowHistory.opportunities[0].liveReadiness.historyReady,false);
+assert.equal(shallowHistory.opportunities[0].referencePrice,null,'unready history must not expose a customer anomaly reference price');
+assert.equal(shallowHistory.opportunities[0].liveReadiness.anomalyConfidence,0);
+assert.equal(shallowHistory.opportunities[0].liveReadiness.conservativeProfit,0);
+assert.equal(shallowHistory.opportunities[0].liveReadiness.conservativeRoi,0);
+assert.equal(shallowHistory.opportunities[0].customerAlertEligible,false);
+
+const shallowSales = buildCustomerLivePayload(batch({...assessment,completedSales:completedSales.slice(0,2)}), validation, {asOf,enableAlerts:true});
+assert.equal(shallowSales.opportunities[0].liveReadiness.resaleReady,false);
+assert.equal(shallowSales.opportunities[0].comps.authoritative,false,'insufficient verified sold depth must not authorize aggregate resale comps');
+assert.equal(shallowSales.opportunities[0].comps.d30,null);
+assert.equal(shallowSales.opportunities[0].comps.d60,null);
+assert.equal(shallowSales.opportunities[0].comps.d90,null);
+assert.equal(shallowSales.opportunities[0].liveReadiness.conservativeProfit,0);
+assert.equal(shallowSales.opportunities[0].liveReadiness.conservativeRoi,0);
+assert.equal(shallowSales.opportunities[0].customerAlertEligible,false);
 
 const missingRights = buildCustomerLivePayload(batch({...assessment,observation:{...observation,source:{...source,rightsClass:null}}}), validation, {asOf,enableAlerts:true});
 assert.equal(missingRights.opportunities.length,0,'missing rights class must reject the live opportunity');
