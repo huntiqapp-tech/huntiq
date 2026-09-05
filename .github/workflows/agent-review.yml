@@ -1,10 +1,7 @@
 name: HUNTIQ agent review handoff
 
-# Trigger note: workflow_run always evaluates using the workflow file committed on the
-# repository's default branch, not whatever is in the PR that triggered "HUNTIQ tests".
-# That is what makes this trigger safe to use here (unlike pull_request_target with an
-# untrusted checkout) -- a PR cannot alter what this workflow does by changing this file
-# in its own branch.
+# This workflow runs only after the HUNTIQ PR test workflow completes. The workflow
+# definition itself always comes from the trusted default branch.
 on:
   workflow_run:
     workflows: ["HUNTIQ tests"]
@@ -100,6 +97,17 @@ jobs:
       id-token: write
       contents: read
     steps:
+      # Check out only the trusted default-branch revision that owns this workflow.
+      # Never check out the PR head in this credential-bearing job.
+      - name: Checkout trusted reviewer only
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          sparse-checkout: |
+            scripts/claude-pr-review.py
+          sparse-checkout-cone-mode: false
+
       - name: Download review packet
         uses: actions/download-artifact@v4
         with:
@@ -136,7 +144,7 @@ jobs:
           ANTHROPIC_ORGANIZATION_ID: ${{ vars.ANTHROPIC_ORGANIZATION_ID }}
           ANTHROPIC_FEDERATION_RULE_ID: ${{ vars.ANTHROPIC_FEDERATION_RULE_ID }}
           ANTHROPIC_SERVICE_ACCOUNT_ID: ${{ vars.ANTHROPIC_SERVICE_ACCOUNT_ID }}
-          ANTHROPIC_WORKSPACE_ID: ${{ vars.ANTHROPIC_WORKSPACE_ID }}
+          ANTHROPIC_WORKSPACE_ID: ${{ vars.ANTHROPIC_WORKSPACE_ID || 'wrkspc_01Tu68TBrrtvigcjczbG3c8J' }}
           ANTHROPIC_REVIEW_MODEL: ${{ vars.ANTHROPIC_REVIEW_MODEL }}
           ANTHROPIC_IDENTITY_TOKEN_FILE: ${{ steps.oidc.outputs.token_path }}
           HEAD_SHA: ${{ needs.prepare-review.outputs.head_sha }}
