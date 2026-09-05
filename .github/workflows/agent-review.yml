@@ -1,18 +1,29 @@
 name: HUNTIQ agent review handoff
 
+# Trigger note: workflow_run always evaluates using the workflow file committed on the
+# repository's default branch, not whatever is in the PR that triggered "HUNTIQ tests".
+# That is what makes this trigger safe to use here (unlike pull_request_target with an
+# untrusted checkout) -- a PR cannot alter what this workflow does by changing this file
+# in its own branch.
 on:
   workflow_run:
     workflows: ["HUNTIQ tests"]
     types: [completed]
 
+env:
+  MAX_AUTOMATED_FIX_ATTEMPTS: '2' # Reserved for a future stage. Nothing in this
+                                  # workflow runs an automated fix loop yet -- see
+                                  # docs/automation-orchestration.md.
+
 permissions:
   contents: read
-  pull-requests: read
-
-env:
-  MAX_AUTOMATED_FIX_ATTEMPTS: '2'
 
 jobs:
+  # ---------------------------------------------------------------------------------
+  # Job 1: build the review packet. Reads PR metadata/diff purely through the GitHub
+  # API (gh), never checks out or executes the PR's code. Holds no Anthropic
+  # credentials of any kind.
+  # ---------------------------------------------------------------------------------
   prepare-review:
     name: Prepare AI review packet
     if: >-
@@ -20,14 +31,16 @@ jobs:
       github.event.workflow_run.event == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      pr_number: ${{ steps.resolve.outputs.pr_number }}
+      head_sha: ${{ github.event.workflow_run.head_sha }}
+      run_url: ${{ github.event.workflow_run.html_url }}
     steps:
-      - name: Checkout exact tested revision
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.workflow_run.head_sha }}
-          fetch-depth: 0
-
-      - name: Build review packet
+      - name: Resolve tested PR and exact tested SHA
+        id: resolve
         env:
           GH_TOKEN: ${{ github.token }}
           REPOSITORY: ${{ github.repository }}
@@ -48,9 +61,13 @@ jobs:
             echo "max_automated_fix_attempts=$MAX_AUTOMATED_FIX_ATTEMPTS"
             echo "auto_merge=false"
           } > .huntiq-review/metadata.txt
+          echo "pr_number=${PR_NUMBER:-}" >> "$GITHUB_OUTPUT"
 
+          # Everything below reads PR content through the GitHub API only (gh pr view /
+          # gh pr diff). Nothing here checks out or executes a single line of the PR's
+          # own code.
           if [[ -n "${PR_NUMBER:-}" ]]; then
-            gh pr view "$PR_NUMBER" --repo "$REPOSITORY" --json number,title,url,baseRefName,headRefName,headRefOid,changedFiles,additions,deletions > .huntiq-review/pr.json
+            gh pr view "$PR_NUMBER" --repo "$REPOSITORY" --json number,title,url,baseRefName,headRefName,headRefOid,changedFiles,additions,deletions,body > .huntiq-review/pr.json
             gh pr diff "$PR_NUMBER" --repo "$REPOSITORY" > .huntiq-review/pr.diff
           else
             printf '{"warning":"workflow_run did not expose a pull request number"}\n' > .huntiq-review/pr.json
@@ -71,19 +88,117 @@ jobs:
           6. Credentials and secrets never enter source, logs, browser code, or the PWA.
           7. Verify integration paths, not only isolated helper tests.
 
-          A future cloud reviewer may propose fixes on the PR branch, but automated fix loops are capped at two attempts and auto-merge remains disabled.
+          Automated fix loops are capped at two attempts and are not yet enabled in this
+          version. Auto-merge remains disabled.
           EOF
 
       - name: Upload review packet
         uses: actions/upload-artifact@v4
         with:
-          name: huntiq-ai-review-${{ github.event.workflow_run.head_sha }}
+          name: huntiq-review-packet-${{ github.event.workflow_run.head_sha }}
           path: .huntiq-review/
           if-no-files-found: error
           retention-days: 14
 
-      - name: AI reviewer connection status
+  # ---------------------------------------------------------------------------------
+  # Job 2: the only credential-bearing job. Obtains a GitHub OIDC identity token and
+  # exchanges it for a short-lived Anthropic access token via Workload Identity
+  # Federation (no static ANTHROPIC_API_KEY). Downloads only the plain-text review
+  # packet (metadata + diff) built by job 1 -- there is no actions/checkout step in
+  # this job, so no PR-controlled file is ever present on this runner's disk, let
+  # alone executed. Cannot write to the PR: it has no pull-requests permission.
+  # ---------------------------------------------------------------------------------
+  claude-review:
+    name: Claude review (Anthropic WIF)
+    needs: prepare-review
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Download review packet
+        uses: actions/download-artifact@v4
+        with:
+          name: huntiq-review-packet-${{ needs.prepare-review.outputs.head_sha }}
+          path: .huntiq-review
+
+      - name: Fetch GitHub OIDC identity token for Anthropic
+        id: oidc
+        shell: bash
         run: |
-          echo 'CI handoff packet created successfully.'
-          echo 'Cloud AI execution is intentionally disabled until a scoped provider credential is configured in GitHub Actions secrets.'
-          echo 'No desktop session is required for this workflow.'
+          set -euo pipefail
+          token_path="$RUNNER_TEMP/anthropic-identity-token"
+          curl -sS -f -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=https://api.anthropic.com" \
+            | jq -r .value > "$token_path"
+          chmod 600 "$token_path"
+          if [[ ! -s "$token_path" ]]; then
+            echo "::error::Failed to obtain a GitHub OIDC identity token." >&2
+            exit 1
+          fi
+          # Never echo/print the token itself, and never write it under the workspace
+          # or any path an artifact-upload step might later pick up.
+          echo "token_path=$token_path" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Anthropic SDK
+        run: pip install --quiet --disable-pip-version-check "anthropic>=0.70"
+
+      - name: Run Claude review
+        id: review
+        env:
+          ANTHROPIC_ORGANIZATION_ID: ${{ vars.ANTHROPIC_ORGANIZATION_ID }}
+          ANTHROPIC_FEDERATION_RULE_ID: ${{ vars.ANTHROPIC_FEDERATION_RULE_ID }}
+          ANTHROPIC_SERVICE_ACCOUNT_ID: ${{ vars.ANTHROPIC_SERVICE_ACCOUNT_ID }}
+          ANTHROPIC_WORKSPACE_ID: ${{ vars.ANTHROPIC_WORKSPACE_ID }}
+          ANTHROPIC_REVIEW_MODEL: ${{ vars.ANTHROPIC_REVIEW_MODEL }}
+          ANTHROPIC_IDENTITY_TOKEN_FILE: ${{ steps.oidc.outputs.token_path }}
+          HEAD_SHA: ${{ needs.prepare-review.outputs.head_sha }}
+          RUN_URL: ${{ needs.prepare-review.outputs.run_url }}
+        run: |
+          python3 scripts/claude-pr-review.py .huntiq-review .huntiq-review-result
+
+      - name: Upload sanitized review result
+        if: always() && steps.review.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: huntiq-review-result-${{ needs.prepare-review.outputs.head_sha }}
+          path: .huntiq-review-result/
+          if-no-files-found: error
+          retention-days: 14
+
+  # ---------------------------------------------------------------------------------
+  # Job 3: posts the already-sanitized review result to the PR. Deliberately has no
+  # id-token permission and never touches Anthropic credentials -- it only has
+  # pull-requests: write, and only because posting the comment requires it.
+  # ---------------------------------------------------------------------------------
+  post-review:
+    name: Post review to PR
+    needs: [prepare-review, claude-review]
+    if: needs.prepare-review.outputs.pr_number != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Download sanitized review result
+        uses: actions/download-artifact@v4
+        with:
+          name: huntiq-review-result-${{ needs.prepare-review.outputs.head_sha }}
+          path: .huntiq-review-result
+
+      - name: Post comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ needs.prepare-review.outputs.pr_number }}
+        run: |
+          set -euo pipefail
+          gh pr comment "$PR_NUMBER" --repo "$REPOSITORY" --body-file .huntiq-review-result/comment.md
+          echo "Posted review (verdict: $(cat .huntiq-review-result/verdict.txt)) to PR #$PR_NUMBER."
+          echo "This workflow never merges or auto-fixes anything; auto-merge remains disabled."
