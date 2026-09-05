@@ -11,19 +11,12 @@ on:
     types: [completed]
 
 env:
-  MAX_AUTOMATED_FIX_ATTEMPTS: '2' # Reserved for a future stage. Nothing in this
-                                  # workflow runs an automated fix loop yet -- see
-                                  # docs/automation-orchestration.md.
+  MAX_AUTOMATED_FIX_ATTEMPTS: '2'
 
 permissions:
   contents: read
 
 jobs:
-  # ---------------------------------------------------------------------------------
-  # Job 1: build the review packet. Reads PR metadata/diff purely through the GitHub
-  # API (gh), never checks out or executes the PR's code. Holds no Anthropic
-  # credentials of any kind.
-  # ---------------------------------------------------------------------------------
   prepare-review:
     name: Prepare AI review packet
     if: >-
@@ -63,9 +56,6 @@ jobs:
           } > .huntiq-review/metadata.txt
           echo "pr_number=${PR_NUMBER:-}" >> "$GITHUB_OUTPUT"
 
-          # Everything below reads PR content through the GitHub API only (gh pr view /
-          # gh pr diff). Nothing here checks out or executes a single line of the PR's
-          # own code.
           if [[ -n "${PR_NUMBER:-}" ]]; then
             gh pr view "$PR_NUMBER" --repo "$REPOSITORY" --json number,title,url,baseRefName,headRefName,headRefOid,changedFiles,additions,deletions,body > .huntiq-review/pr.json
             gh pr diff "$PR_NUMBER" --repo "$REPOSITORY" > .huntiq-review/pr.diff
@@ -97,17 +87,10 @@ jobs:
         with:
           name: huntiq-review-packet-${{ github.event.workflow_run.head_sha }}
           path: .huntiq-review/
+          include-hidden-files: true
           if-no-files-found: error
           retention-days: 14
 
-  # ---------------------------------------------------------------------------------
-  # Job 2: the only credential-bearing job. Obtains a GitHub OIDC identity token and
-  # exchanges it for a short-lived Anthropic access token via Workload Identity
-  # Federation (no static ANTHROPIC_API_KEY). Downloads only the plain-text review
-  # packet (metadata + diff) built by job 1 -- there is no actions/checkout step in
-  # this job, so no PR-controlled file is ever present on this runner's disk, let
-  # alone executed. Cannot write to the PR: it has no pull-requests permission.
-  # ---------------------------------------------------------------------------------
   claude-review:
     name: Claude review (Anthropic WIF)
     needs: prepare-review
@@ -137,8 +120,6 @@ jobs:
             echo "::error::Failed to obtain a GitHub OIDC identity token." >&2
             exit 1
           fi
-          # Never echo/print the token itself, and never write it under the workspace
-          # or any path an artifact-upload step might later pick up.
           echo "token_path=$token_path" >> "$GITHUB_OUTPUT"
 
       - name: Set up Python
@@ -169,14 +150,10 @@ jobs:
         with:
           name: huntiq-review-result-${{ needs.prepare-review.outputs.head_sha }}
           path: .huntiq-review-result/
+          include-hidden-files: true
           if-no-files-found: error
           retention-days: 14
 
-  # ---------------------------------------------------------------------------------
-  # Job 3: posts the already-sanitized review result to the PR. Deliberately has no
-  # id-token permission and never touches Anthropic credentials -- it only has
-  # pull-requests: write, and only because posting the comment requires it.
-  # ---------------------------------------------------------------------------------
   post-review:
     name: Post review to PR
     needs: [prepare-review, claude-review]
