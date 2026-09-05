@@ -1,17 +1,17 @@
 name: Claude WIF smoke test
 
 on:
-  issues:
-    types: [opened, edited]
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
 
 permissions:
   contents: read
-  issues: write
+  pull-requests: read
   id-token: write
 
 jobs:
   claude-smoke-test:
-    if: contains(github.event.issue.title, '[claude-smoke-test]')
+    if: contains(github.event.pull_request.title, '[claude-smoke-test]')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
