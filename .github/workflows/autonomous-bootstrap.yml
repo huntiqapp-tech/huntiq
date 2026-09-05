@@ -2,7 +2,8 @@ name: HUNTIQ autonomous task bootstrap
 
 on:
   issues:
-    types: [opened]
+    types:
+      - opened
 
 permissions:
   contents: write
@@ -11,9 +12,7 @@ permissions:
 
 jobs:
   bootstrap:
-    if: >-
-      startsWith(github.event.issue.title, '[AI BUILD]') &&
-      github.event.issue.author_association == 'OWNER'
+    if: ${{ startsWith(github.event.issue.title, '[AI BUILD]') && github.event.issue.author_association == 'OWNER' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -22,7 +21,7 @@ jobs:
         with:
           ref: main
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ github.token }}
 
       - name: Create autonomous work branch and task packet
         id: branch
@@ -76,4 +75,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
           PR_URL: ${{ steps.pr.outputs.url }}
-        run: gh issue comment "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --body "Autonomous build started: $PR_URL"
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh issue comment "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --body "Autonomous build started: $PR_URL"
