@@ -20,7 +20,8 @@ const completedSales = [
   { productId: 'staples-100', status: 'completed', price: 95, soldAt: '2026-09-03T02:00:00.000Z', verified: true },
   { productId: 'staples-100', status: 'fulfilled', price: 97, soldAt: '2026-09-02T02:00:00.000Z', verified: true }
 ];
-const assessment = { observation, historyObservations, completedSales, historyEvidence: { historyPromoted: true, promotedCount: 3, anomalyConfidence: 80 }, resaleConfidence: 80, economics: { expectedProfit: 30, roi: 60, downsideProfit: 18, downsideRoi: 36 }, opportunity: { evidence: { alertEligible: true } } };
+const comps = { productId: 'staples-100', d30: 90, d60: 91, d90: 88, soldWindowDays: 90, verified: true };
+const assessment = { observation, historyObservations, completedSales, comps, historyEvidence: { historyPromoted: true, promotedCount: 3, anomalyConfidence: 80 }, resaleConfidence: 80, economics: { expectedProfit: 30, roi: 60, downsideProfit: 18, downsideRoi: 36 }, opportunity: { evidence: { alertEligible: true } } };
 const batch = { provider: 'retailerapi', validationState: 'validated', assessments: [assessment] };
 
 const valid = buildCustomerLivePayload(batch, validation, { asOf, enableAlerts: true });

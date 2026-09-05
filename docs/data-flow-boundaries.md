@@ -27,3 +27,24 @@ HUNTIQ must keep source observations, derived history, resale evidence, economic
 
 ## Audit keys to preserve
 For each final recommendation retain enough information to recover: product identity, retailer/location, source and observed-at timestamp, price-history feature snapshot, anomaly score/evidence, resale comparable window/count/confidence, selected channel economics, downside result, velocity/liquidity result, evidence blockers/warnings, recommendation, alert eligibility, and alert-delivery reason.
+
+
+## Schema persistence status
+
+As of v0.9.109: every file under `db/` (90+ migrations, including all `customer_live_*`,
+`customer_authorized_*`, and `customer_pwa_authority_gate_audit` tables) defines an intended
+schema/constraint contract only. This repository contains no database client, connection
+pool, or SQL-executing code anywhere in `lib/` -- grep for `INSERT INTO`, `pg`, `Pool`, or
+`Client(` and you will find nothing. These tables are not wired to any runtime writer here.
+
+This is a deliberate boundary, not an oversight to "fix" by bolting a database client onto
+this repo: HUNTIQ's engine/PWA code in this repository computes and enforces the same rules
+these tables describe in-process (evidence authority, redaction, freshness gating), and a
+separate service layer -- not present in this repository -- owns actual persistence,
+whenever it exists.
+
+Practical rule: do not assume any `db/*.sql` table is an active audit trail, alerting
+source, or compliance record just because a migration file for it exists. If you are
+building something that depends on rows actually being written to one of these tables,
+that writer does not exist yet in this codebase and needs to be built (and documented here)
+first.

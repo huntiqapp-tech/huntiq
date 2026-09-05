@@ -21,11 +21,13 @@ assert.equal(item.liveReadiness.conservativeRoi,0,'unverified resale evidence ca
 assert.equal(item.customerAlertEligible,false,'unverified sales cannot unlock alerts');
 assert.equal(contaminated.alertsEnabled,false);
 
-const verified=buildCustomerLivePayload({provider:'retailerapi',validationState:'validated',assessments:[{...base,completedSales:[sale(90,4,true),sale(92,3,true),sale(88,2,true)]}]},validation,{asOf,enableAlerts:true});
+const verifiedComps={productId:'verify-sale-1',d30:90,d60:91,d90:88,soldWindowDays:90,verified:true};
+const verified=buildCustomerLivePayload({provider:'retailerapi',validationState:'validated',assessments:[{...base,comps:verifiedComps,completedSales:[sale(90,4,true),sale(92,3,true),sale(88,2,true)]}]},validation,{asOf,enableAlerts:true});
 assert.equal(verified.opportunities[0].completedSales.length,3);
 assert.equal(verified.opportunities[0].liveReadiness.resaleReady,true);
 assert.equal(verified.opportunities[0].liveReadiness.conservativeProfit,30);
 assert.equal(verified.opportunities[0].liveReadiness.conservativeRoi,75);
 assert.equal(verified.opportunities[0].customerAlertEligible,true);
+assert.equal(verified.opportunities[0].evidenceAuthority.marketComparisonAuthoritative,true,'three verified sales plus a verified aggregate should authorize the market comparison');
 assert.equal(verified.alertsEnabled,true);
 console.log('customer live sale verification tests passed');
