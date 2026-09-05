@@ -5,3 +5,5 @@ Temporary file used only to trigger a pull_request event against main and verify
 Retest after configuring the Default Anthropic workspace ID.
 
 Retest after syncing PR against updated main with explicit Anthropic OIDC audience.
+
+Retest with safe OIDC claim diagnostics enabled.
