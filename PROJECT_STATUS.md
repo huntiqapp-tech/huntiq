@@ -3,9 +3,9 @@
 Last established from repository and product handoff: 2026-09-04. This is the living handoff and must be updated after meaningful work.
 
 ## CURRENT VERSION
-- Package: **0.9.84**
+- Package: **0.9.97**
 - Public PWA preview is functional but still intentionally uses demonstration opportunity data until rights-cleared live integrations are connected.
-- Offline cache: **`huntiq-public-v89`**.
+- Offline cache: **`huntiq-public-v97`**.
 
 ## DONE / PRESENT
 - Mobile-first installable PWA with offline service worker and browser-persistent watchlist.
@@ -49,6 +49,9 @@ Last established from repository and product handoff: 2026-09-04. This is the li
 - **v0.9.82 provider validation review:** a provider- and retailer-bound manual review promotes positive-price observations only when identity, source comparison, provenance and retention rights pass. Internal history permission remains separate from customer redistribution, and promoted observations remain alert-disabled.
 - **v0.9.83 real-market-value rule:** retailer MSRP, list, regular and compare-at prices are context only and cannot influence resale value, profit/ROI or recommendations. Regression coverage locks a $69 acquisition with roughly $60 completed-sale value to SKIP even when the retailer claims a $160 MSRP.
 - **v0.9.84 customer market-reality presentation:** opportunity cards now compare acquisition price with completed-sale market value, label the spread as gross before fees, identify prices above sold market, and visibly quarantine retailer reference discounts from resale authority. Demo cards explicitly label their synthetic sold-market check; live rows without verified sold evidence state that market value is unavailable.
+- **v0.9.85-v0.9.89 inherited live-boundary work:** live PWA provenance, persistent-history identity/timestamps, validated Bright Data customer payloads, and product-bound resale evidence landed on main. These changes are retained because they advance the authenticated provider/customer boundary.
+- **v0.9.90-v0.9.97 inherited model work:** marketplace fee bases, full-cost ROI, temporal evidence, history recency and dated sold-comp safeguards landed directly on main. They are retained and the full suite passes, but further scoring/freshness/resale/alert work remains frozen until authenticated provider output proves a specific unmet safety need.
+- **Execution guard:** GitHub Actions now rejects changes to frozen scoring, risk, freshness, ranking, inventory, resale, alert, confidence, anomaly, momentum, liquidation or economics paths unless the same change records authenticated provider evidence and the concrete unmet safety gap in `docs/live-data-safety-gap.md`.
 
 ## DATABASE / AUDIT LAYERS
 - `db/013_price_history_features.sql` — store-isolated sequential price features.
