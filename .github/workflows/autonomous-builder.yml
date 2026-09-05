@@ -1,0 +1,99 @@
+name: HUNTIQ autonomous Claude builder
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: read
+  id-token: write
+
+concurrency:
+  group: huntiq-autonomous-builder-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    if: >-
+      startsWith(github.head_ref, 'ai/issue-') &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout autonomous PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check whether implementation is still pending
+        id: pending
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -f .huntiq/tasks/current.md ]] && grep -q '^status: pending$' .huntiq/tasks/current.md; then
+            echo 'run=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'run=false' >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Implement task with Claude
+        if: steps.pending.outputs.run == 'true'
+        uses: anthropics/claude-code-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          prompt: |
+            Implement the HUNTIQ task described in .huntiq/tasks/current.md on the CURRENT PR BRANCH.
+
+            You are an implementation agent, not the product owner. Make the smallest complete production-quality change that satisfies the task. Do not merge, rebase, switch branches, change repository credentials, or modify any file under .github/workflows/.
+
+            HUNTIQ invariants:
+            - Customer-facing evidence fails closed when authority/provenance is missing or incomplete.
+            - Completed sales, never active asking prices, drive resale valuation.
+            - Price history stays retailer + product + location/channel specific.
+            - Promotions, rewards, rebates, and store credit never contaminate raw shelf/acquisition price semantics.
+            - Affiliate payout never affects Flip Score, ranking, or ordering.
+            - Secrets never enter source, logs, browser code, artifacts, or the PWA.
+            - Verify the real integration path, not only helper functions.
+
+            Inspect the repository, implement the task, add/update regression tests, and run npm test. If the task conflicts with these invariants, stop and explain the conflict instead of weakening a guardrail.
+          anthropic_federation_rule_id: ${{ vars.ANTHROPIC_FEDERATION_RULE_ID }}
+          anthropic_organization_id: ${{ vars.ANTHROPIC_ORGANIZATION_ID }}
+          anthropic_service_account_id: ${{ vars.ANTHROPIC_SERVICE_ACCOUNT_ID }}
+          anthropic_workspace_id: ${{ vars.ANTHROPIC_WORKSPACE_ID || 'wrkspc_01Tu68TBrrtvigcjczbG3c8J' }}
+          claude_args: "--max-turns 25 --allowedTools 'Edit,MultiEdit,Write,Read,Glob,Grep,LS,Bash(npm:*),Bash(node:*)'"
+
+      - name: Verify full test suite
+        if: steps.pending.outputs.run == 'true'
+        run: npm test
+
+      - name: Finalize implementation commit
+        if: steps.pending.outputs.run == 'true'
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "HUNTIQ Autonomous Agent"
+          git config user.email "huntiqapp-tech@users.noreply.github.com"
+          sed -i 's/^status: pending$/status: implemented/' .huntiq/tasks/current.md
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "feat: autonomous implementation for PR #${PR_NUMBER}"
+          fi
+          git push origin HEAD:${GITHUB_HEAD_REF}
+
+      - name: Mark PR ready for review
+        if: steps.pending.outputs.run == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh pr ready "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" || true
+          gh pr comment "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --body "Autonomous implementation completed and pushed. HUNTIQ tests and the production Claude review gate now decide whether this revision is acceptable."
