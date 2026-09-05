@@ -1,21 +1,63 @@
 name: HUNTIQ tests
+
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: huntiq-pr-guard-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
+    name: PR Guard
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+          # No cache: npm here on purpose. actions/setup-node's npm cache keys off
+          # package-lock.json/npm-shrinkwrap.json/yarn.lock, and this repo intentionally
+          # has none (zero runtime/dev dependencies -- see package.json). Enabling the
+          # cache with no lockfile hard-fails the setup-node step before any test runs.
+          # Do not "fix" this by committing a placeholder lockfile just to satisfy the
+          # cache option -- add real caching only if/when this repo actually gains
+          # dependencies and a real lockfile to key it on.
+
+      - name: Install dependencies
+        # npm ci requires a lockfile and will fail the same way the cache option did.
+        # This repo has no dependencies, so a plain install is the correct match for its
+        # actual pattern: it resolves to a fast no-op today and still works correctly if
+        # dependencies (and a lockfile) are added later.
+        run: npm install --no-audit --no-fund
+
       - name: Enforce active live-data priority
         env:
           HUNTIQ_BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
         run: node tests/active-priority-guard.test.js && node scripts/check-active-priority.js
-      - run: npm test
+
+      - name: Run authority and customer-boundary regressions when present
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t authority_tests < <(find tests -maxdepth 1 -type f \( -name '*authority*.test.js' -o -name '*customer-live*.test.js' -o -name '*redaction*.test.js' \) | sort)
+          if ((${#authority_tests[@]})); then
+            printf 'Running targeted customer-boundary tests:\n%s\n' "${authority_tests[*]}"
+            node --test "${authority_tests[@]}"
+          else
+            echo 'No targeted authority/customer-boundary tests present on this ref.'
+          fi
+
+      - name: Run full HUNTIQ test suite
+        run: npm test
