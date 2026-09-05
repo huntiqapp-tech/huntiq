@@ -1,0 +1,136 @@
+name: HUNTIQ autonomous review fix
+
+on:
+  workflow_run:
+    workflows: ["HUNTIQ agent review handoff"]
+    types: [completed]
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: read
+  id-token: write
+
+concurrency:
+  group: huntiq-autonomous-review-fix-${{ github.event.workflow_run.id }}
+  cancel-in-progress: false
+
+jobs:
+  fix:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Download handoff artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: huntiq-review-*
+          path: .huntiq-handoff
+          merge-multiple: false
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          run-id: ${{ github.event.workflow_run.id }}
+
+      - name: Decide whether a bounded fix is allowed
+        id: decide
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          verdict_file="$(find .huntiq-handoff -type f -name verdict.txt -print -quit)"
+          metadata_file="$(find .huntiq-handoff -type f -name metadata.txt -print -quit)"
+          if [[ -z "$verdict_file" || -z "$metadata_file" ]]; then
+            echo 'fix=false' >> "$GITHUB_OUTPUT"
+            echo 'reason=missing-review-artifacts' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          verdict="$(tr -d '\r\n ' < "$verdict_file")"
+          pr_number="$(sed -n 's/^pr_number=//p' "$metadata_file" | head -n1)"
+          if [[ "$verdict" != 'BLOCK' || -z "$pr_number" ]]; then
+            echo 'fix=false' >> "$GITHUB_OUTPUT"
+            echo 'reason=review-passed-or-no-pr' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          branch="$(gh pr view "$pr_number" --repo "$GITHUB_REPOSITORY" --json headRefName,headRepositoryOwner --jq '.headRefName')"
+          owner="$(gh pr view "$pr_number" --repo "$GITHUB_REPOSITORY" --json headRepositoryOwner --jq '.headRepositoryOwner.login')"
+          repo_owner="${GITHUB_REPOSITORY%%/*}"
+          if [[ "$owner" != "$repo_owner" || "$branch" != ai/issue-* ]]; then
+            echo 'fix=false' >> "$GITHUB_OUTPUT"
+            echo 'reason=not-autonomous-same-repo-pr' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          attempts="$(gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$pr_number/commits" --jq '.[].commit.message' | grep -c '^\[huntiq-autofix ' || true)"
+          if (( attempts >= 2 )); then
+            gh pr comment "$pr_number" --repo "$GITHUB_REPOSITORY" --body "Autonomous fix cap reached (2/2). Escalating to the HUNTIQ project manager; no additional agent writes will be attempted automatically."
+            echo 'fix=false' >> "$GITHUB_OUTPUT"
+            echo 'reason=fix-cap-reached' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo 'fix=true' >> "$GITHUB_OUTPUT"
+          echo "pr_number=$pr_number" >> "$GITHUB_OUTPUT"
+          echo "branch=$branch" >> "$GITHUB_OUTPUT"
+          echo "attempt=$((attempts + 1))" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout autonomous PR branch
+        if: steps.decide.outputs.fix == 'true'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.decide.outputs.branch }}
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Re-download review findings after checkout
+        if: steps.decide.outputs.fix == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          pattern: huntiq-review-result-*
+          path: .huntiq-review-result
+          merge-multiple: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          run-id: ${{ github.event.workflow_run.id }}
+
+      - name: Fix BLOCK findings with Claude
+        if: steps.decide.outputs.fix == 'true'
+        uses: anthropics/claude-code-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          prompt: |
+            The production HUNTIQ reviewer returned BLOCK for this autonomous PR. Read .huntiq-review-result/findings.json and fix every actionable finding on the CURRENT PR BRANCH.
+
+            Do not merge, rebase, switch branches, change credentials, modify .github/workflows/, or weaken HUNTIQ evidence/profit guardrails just to make a test pass. Preserve fail-closed customer evidence, sold-comps-only resale valuation, retailer/product/location price-history isolation, correct promotion/rebate semantics, affiliate-neutral ranking, and secret hygiene.
+
+            Add or strengthen regression tests for each fix and run npm test. If a finding cannot be fixed safely, leave the code fail-closed and explain why rather than bypassing the guardrail.
+          anthropic_federation_rule_id: ${{ vars.ANTHROPIC_FEDERATION_RULE_ID }}
+          anthropic_organization_id: ${{ vars.ANTHROPIC_ORGANIZATION_ID }}
+          anthropic_service_account_id: ${{ vars.ANTHROPIC_SERVICE_ACCOUNT_ID }}
+          anthropic_workspace_id: ${{ vars.ANTHROPIC_WORKSPACE_ID || 'wrkspc_01Tu68TBrrtvigcjczbG3c8J' }}
+          claude_args: "--max-turns 20 --allowedTools 'Edit,MultiEdit,Write,Read,Glob,Grep,LS,Bash(npm:*),Bash(node:*)'"
+
+      - name: Verify fixed revision
+        if: steps.decide.outputs.fix == 'true'
+        run: npm test
+
+      - name: Commit and push bounded fix
+        if: steps.decide.outputs.fix == 'true'
+        env:
+          ATTEMPT: ${{ steps.decide.outputs.attempt }}
+          BRANCH: ${{ steps.decide.outputs.branch }}
+          PR_NUMBER: ${{ steps.decide.outputs.pr_number }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "HUNTIQ Autonomous Agent"
+          git config user.email "huntiqapp-tech@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            gh pr comment "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --body "Autonomous fix attempt ${ATTEMPT}/2 produced no safe code change. Escalating to the project manager."
+            exit 0
+          fi
+          git commit -m "[huntiq-autofix ${ATTEMPT}/2] address automated review findings"
+          git push origin HEAD:"$BRANCH"
