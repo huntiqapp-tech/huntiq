@@ -12,11 +12,28 @@ permissions:
 
 jobs:
   bootstrap:
-    if: ${{ startsWith(github.event.issue.title, '[AI BUILD]') && github.event.issue.author_association == 'OWNER' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      - name: Authorize OWNER AI build issue
+        id: authorize
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          issue_json="$(gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER")"
+          association="$(jq -r '.author_association' <<<"$issue_json")"
+          title="$(jq -r '.title' <<<"$issue_json")"
+          if [[ "$association" == 'OWNER' && "$title" == '[AI BUILD]'* ]]; then
+            echo 'authorized=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'authorized=false' >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Checkout trusted main
+        if: steps.authorize.outputs.authorized == 'true'
         uses: actions/checkout@v4
         with:
           ref: main
@@ -24,6 +41,7 @@ jobs:
           token: ${{ github.token }}
 
       - name: Create autonomous work branch and task packet
+        if: steps.authorize.outputs.authorized == 'true'
         id: branch
         env:
           ISSUE_NUMBER: ${{ github.event.issue.number }}
@@ -57,6 +75,7 @@ jobs:
           echo "branch=$branch" >> "$GITHUB_OUTPUT"
 
       - name: Open draft implementation PR
+        if: steps.authorize.outputs.authorized == 'true'
         id: pr
         env:
           GH_TOKEN: ${{ github.token }}
@@ -71,6 +90,7 @@ jobs:
           echo "url=$url" >> "$GITHUB_OUTPUT"
 
       - name: Link task to issue
+        if: steps.authorize.outputs.authorized == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
