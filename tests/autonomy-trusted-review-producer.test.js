@@ -21,27 +21,31 @@ assert.equal(gitBlobSha(reviewerPath), 'e5b93d7d00f5c7649326118d6ceab4feb3c89678
 for (const token of [
   'workflows: ["HUNTIQ tests"]',
   'types: [completed]',
-  'head_sha=',
-  'workflow_run=',
-  'pr_number=',
-  'max_automated_fix_attempts=2',
+  "MAX_AUTOMATED_FIX_ATTEMPTS: '2'",
+  'head_sha=$HEAD_SHA',
+  'workflow_run=$RUN_URL',
+  'pr_number=${PR_NUMBER:-}',
+  'max_automated_fix_attempts=$MAX_AUTOMATED_FIX_ATTEMPTS',
   'auto_merge=false',
-  'huntiq-review-packet-${head_sha}',
+  'huntiq-review-packet-${{ github.event.workflow_run.head_sha }}',
   'persist-credentials: false',
   'id-token: write',
-  'huntiq-review-result-${{ needs.prepare.outputs.head_sha }}',
+  'huntiq-review-result-${{ needs.prepare-review.outputs.head_sha }}',
   'verdict.txt',
-  'findings.json'
+  'findings.json',
+  'This workflow never merges anything; auto-merge remains disabled.'
 ]) assert(workflow.includes(token), `trusted review workflow contract missing: ${token}`);
 
 for (const token of [
-  'submit_review',
+  '"name": "submit_review"',
   '"enum": ["PASS", "BLOCK"]',
   '"required": ["verdict", "summary", "findings"]',
-  'contract violation',
+  'malformed structured response is treated as BLOCK',
+  '"verdict": "BLOCK"',
+  'scrub_secrets',
   'verdict.txt',
   'findings.json',
-  'redact'
+  'WorkloadIdentityCredentials'
 ]) assert(reviewer.includes(token), `trusted reviewer contract missing: ${token}`);
 
 assert(!/\bgh\s+pr\s+merge\b/.test(workflow), 'trusted review handoff must never merge');
