@@ -1,0 +1,5 @@
+tests/customer-pwa-authority-gate.test.js
+tests/resale-integrity.test.js
+tests/history-identity.test.js
+tests/acquisition-cost.test.js
+tests/opportunity-ranking.test.js
