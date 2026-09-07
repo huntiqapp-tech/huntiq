@@ -52,31 +52,31 @@
             <span class="kit-bit kit-bit-c"></span>
           </div>
           <div class="sample-top">
-            <span class="retailer">Home Depot</span>
+            <span class="retailer" data-sample="retailer">Home Depot</span>
             <span class="data-state-badge demo">Demo preview</span>
           </div>
-          <h2 id="hero-card-title">Milwaukee M18 Fuel Combo Kit</h2>
+          <h2 id="hero-card-title" data-sample="title">Milwaukee M18 Fuel Combo Kit</h2>
           <div class="price-row">
-            <strong class="current">$129</strong>
-            <span class="reference-line"><s>$599</s> <span class="reference-label">reference, context only</span></span>
+            <strong class="current" data-sample="price">$129</strong>
+            <span class="reference-line"><s data-sample="reference">$599</s> <span class="reference-label">reference, context only</span></span>
           </div>
           <p class="drop">Retailer reference is context only — not resale value.</p>
           <dl class="sample-facts">
             <div>
               <dt>30 / 60 / 90 sold medians</dt>
-              <dd>$489 · $475 · $469</dd>
+              <dd data-sample="medians">$489 · $475 · $469</dd>
             </div>
             <div>
               <dt>Demo sold comps</dt>
-              <dd>38 in 90 days</dd>
+              <dd data-sample="sold">38 in 90 days</dd>
             </div>
             <div>
               <dt>Location identity</dt>
-              <dd>Store/ZIP key 18360</dd>
+              <dd data-sample="location">Store/ZIP key 18360</dd>
             </div>
             <div>
               <dt>Fee assumptions</dt>
-              <dd>13.5% + $24 ship</dd>
+              <dd data-sample="fees">13.5% + $24 ship</dd>
             </div>
           </dl>
           <p class="sample-note">Sample fields from the labeled Home Depot demo deal. Engine-computed profit, ROI, and Flip Score live on the interactive board below.</p>
@@ -142,33 +142,33 @@
       </div>
       <article class="curated-card">
         <div class="curated-copy">
-          <p class="eyebrow">Home Depot · Demo preview</p>
-          <h3>Milwaukee M18 Fuel Combo Kit</h3>
-          <p>This card uses the same demonstration fields as the interactive board: current price <strong>$129</strong>, retailer reference <strong>$599</strong> (context only), and demo sold medians of <strong>$489 / $475 / $469</strong> across 30 / 60 / 90 days.</p>
-          <p>Location key <strong>18360</strong> is a sample store/ZIP identity on this demo deal. HUNTIQ keeps store, ZIP, and online prices separate because local clearance is not a national price. It is not a live local-market feed.</p>
+          <p class="eyebrow" data-sample="eyebrow">Home Depot · Demo preview</p>
+          <h3 data-sample="title">Milwaukee M18 Fuel Combo Kit</h3>
+          <p data-sample="story">This card uses the same demonstration fields as the interactive board: current price $129, retailer reference $599 (context only), and demo sold medians of $489 / $475 / $469 across 30 / 60 / 90 days.</p>
+          <p data-sample="locationStory">Location key 18360 is a sample store/ZIP identity on this demo deal. HUNTIQ keeps store, ZIP, and online prices separate because local clearance is not a national price. It is not a live local-market feed.</p>
           <p>Deal Coach forces demonstration rows to <strong>WATCH</strong>, so this preview cannot look like a live recommendation. Alerts stay off.</p>
           <a class="primary" href="#opportunities">Open the interactive demo</a>
         </div>
         <dl class="curated-stats">
           <div>
             <dt>Current price</dt>
-            <dd>$129</dd>
+            <dd data-sample="price">$129</dd>
           </div>
           <div>
             <dt>Reference (context)</dt>
-            <dd>$599</dd>
+            <dd data-sample="reference">$599</dd>
           </div>
           <div>
             <dt>30-day sold median</dt>
-            <dd>$489</dd>
+            <dd data-sample="d30">$489</dd>
           </div>
           <div>
             <dt>Demo sold comps</dt>
-            <dd>38</dd>
+            <dd data-sample="soldCount">38</dd>
           </div>
           <div>
             <dt>Location provenance</dt>
-            <dd>18360 demo key</dd>
+            <dd data-sample="locationShort">18360 demo key</dd>
           </div>
           <div>
             <dt>Purchase automation</dt>
@@ -323,6 +323,7 @@
           <span>StockX</span>
           <span>Swappa</span>
         </div>
+        <p class="pill-note">These names are research targets, not equal sold-comp feeds. Asking prices and active listings are not completed-sale evidence. Only verified sold data can support resale value; several of these marketplaces currently expose asking or listing data only.</p>
       </div>
     </section>
 

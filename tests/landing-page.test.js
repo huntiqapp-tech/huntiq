@@ -76,6 +76,25 @@ assert(app.includes("navigator.serviceWorker.register('./sw.js')"), 'install/off
 assert(manifest.includes('"start_url":"./"') && manifest.includes('"display":"standalone"'), 'PWA manifest preserved');
 assert(html.includes('id="installBtn"'), 'install control preserved');
 
+assert(app.includes('renderSampleDeal') && app.includes("d.id==='hd-m18'"), 'hero/curated sample cards hydrate from the Home Depot demo deal');
+assert(html.includes('Asking prices and active listings are not completed-sale evidence'), 'marketplace pills are qualified as not equal sold-comp feeds');
+
+const demoBlock = app.match(/\{id:'hd-m18'[\s\S]*?holdingCostPerDay:[0-9.]+\}/);
+assert(demoBlock, 'hd-m18 demo deal is the sample-card source of truth');
+function demoField(key) {
+  const match = demoBlock[0].match(new RegExp(`${key}:(-?\\d+(?:\\.\\d+)?)`));
+  assert(match, `demo deal field ${key} present`);
+  return Number(match[1]);
+}
+const demoTitle = demoBlock[0].match(/title:'([^']+)'/)[1];
+const demoRetailer = demoBlock[0].match(/retailer:'([^']+)'/)[1];
+const demoStore = demoBlock[0].match(/storeId:'([^']+)'/)[1].replace(/-demo$/, '');
+const usd = n => `$${n}`;
+assert(html.includes(demoTitle) && html.includes(demoRetailer), 'sample markup uses the Home Depot demo title and retailer');
+assert(html.includes(usd(demoField('price'))) && html.includes(usd(demoField('referencePrice'))), 'sample markup matches demo price and reference');
+assert(html.includes(usd(demoField('d30'))) && html.includes(usd(demoField('d60'))) && html.includes(usd(demoField('d90'))), 'sample markup matches demo 30/60/90 sold medians');
+assert(html.includes(String(demoField('soldCount'))) && html.includes(demoStore), 'sample markup matches demo sold count and location key');
+
 const requiredDemoHooks = [
   "d.observedAt||d.timestamp||new Date().toISOString()",
   "Array.isArray(d.priceHistory)?d.priceHistory:[]",
