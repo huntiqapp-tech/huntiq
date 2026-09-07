@@ -9,6 +9,7 @@ permissions:
   contents: write
   pull-requests: write
   issues: read
+  actions: read
   id-token: write
 
 concurrency:
@@ -42,14 +43,40 @@ jobs:
           set -euo pipefail
           [[ "$HEAD_REF" =~ ^ai/issue-([0-9]+)-([0-9]+)$ ]] || { echo 'authorized=false' >> "$GITHUB_OUTPUT"; exit 0; }
           issue="${BASH_REMATCH[1]}"
+          bootstrap_run="${BASH_REMATCH[2]}"
           [[ "$PR_BODY" == *"Closes #${issue}"* ]] || { echo 'authorized=false' >> "$GITHUB_OUTPUT"; exit 0; }
           [[ -f .huntiq/tasks/current.md ]] || { echo 'authorized=false' >> "$GITHUB_OUTPUT"; exit 0; }
+
           packet_issue="$(sed -n 's/^issue: //p' .huntiq/tasks/current.md | head -n1)"
-          [[ "$packet_issue" == "$issue" ]] || { echo 'authorized=false' >> "$GITHUB_OUTPUT"; exit 0; }
+          packet_bootstrap_run="$(sed -n 's/^bootstrap_run: //p' .huntiq/tasks/current.md | head -n1)"
+          packet_association="$(sed -n 's/^bootstrap_author_association: //p' .huntiq/tasks/current.md | head -n1)"
+          packet_title_sha="$(sed -n 's/^bootstrap_title_sha256: //p' .huntiq/tasks/current.md | head -n1)"
+          [[ "$packet_issue" == "$issue" && "$packet_bootstrap_run" == "$bootstrap_run" && "$packet_association" == 'OWNER' && "$packet_title_sha" =~ ^[0-9a-f]{64}$ ]] || { echo 'authorized=false' >> "$GITHUB_OUTPUT"; exit 0; }
+
           issue_json="$(gh api "repos/$GITHUB_REPOSITORY/issues/$issue")"
           association="$(jq -r '.author_association' <<<"$issue_json")"
           title="$(jq -r '.title' <<<"$issue_json")"
-          [[ "$association" == 'OWNER' && "$title" == '[AI BUILD]'* ]] || { echo 'authorized=false' >> "$GITHUB_OUTPUT"; exit 0; }
+          issue_author="$(jq -r '.user.login' <<<"$issue_json")"
+          live_title_sha="$(printf '%s' "$title" | sha256sum | awk '{print $1}')"
+          [[ "$association" == 'OWNER' && "$title" == '[AI BUILD]'* && "$live_title_sha" == "$packet_title_sha" ]] || { echo 'authorized=false' >> "$GITHUB_OUTPUT"; exit 0; }
+
+          bootstrap_json="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$bootstrap_run")"
+          [[ "$(jq -r '.id' <<<"$bootstrap_json")" == "$bootstrap_run" ]] || { echo 'authorized=false' >> "$GITHUB_OUTPUT"; exit 0; }
+          [[ "$(jq -r '.name' <<<"$bootstrap_json")" == 'HUNTIQ autonomous task bootstrap' ]] || { echo 'authorized=false' >> "$GITHUB_OUTPUT"; exit 0; }
+          [[ "$(jq -r '.path' <<<"$bootstrap_json")" == '.github/workflows/autonomous-bootstrap.yml' ]] || { echo 'authorized=false' >> "$GITHUB_OUTPUT"; exit 0; }
+          [[ "$(jq -r '.event' <<<"$bootstrap_json")" == 'issues' ]] || { echo 'authorized=false' >> "$GITHUB_OUTPUT"; exit 0; }
+          [[ "$(jq -r '.head_repository.full_name' <<<"$bootstrap_json")" == "$GITHUB_REPOSITORY" ]] || { echo 'authorized=false' >> "$GITHUB_OUTPUT"; exit 0; }
+          [[ "$(jq -r '.actor.login' <<<"$bootstrap_json")" == "$issue_author" ]] || { echo 'authorized=false' >> "$GITHUB_OUTPUT"; exit 0; }
+          bootstrap_status="$(jq -r '.status' <<<"$bootstrap_json")"
+          bootstrap_conclusion="$(jq -r '.conclusion // ""' <<<"$bootstrap_json")"
+          [[ "$bootstrap_status" != 'completed' || "$bootstrap_conclusion" == 'success' ]] || { echo 'authorized=false' >> "$GITHUB_OUTPUT"; exit 0; }
+
+          base_sha="$(git merge-base origin/main HEAD)"
+          mapfile -t branch_commits < <(git rev-list --reverse "${base_sha}..HEAD")
+          [[ ${#branch_commits[@]} -eq 1 ]] || { echo 'authorized=false' >> "$GITHUB_OUTPUT"; exit 0; }
+          mapfile -t changed_paths < <(git diff --name-only "${base_sha}..HEAD")
+          [[ ${#changed_paths[@]} -eq 1 && "${changed_paths[0]}" == '.huntiq/tasks/current.md' ]] || { echo 'authorized=false' >> "$GITHUB_OUTPUT"; exit 0; }
+
           echo 'authorized=true' >> "$GITHUB_OUTPUT"
 
       - name: Check whether implementation is still pending
@@ -96,7 +123,7 @@ jobs:
           git diff --unified=0 origin/main...HEAD > "$RUNNER_TEMP/huntiq.diff"
           git diff --unified=0 > "$RUNNER_TEMP/huntiq-worktree.diff"
           cat "$RUNNER_TEMP/huntiq.diff" "$RUNNER_TEMP/huntiq-worktree.diff" | grep '^+' | grep -Ev '^\+\+\+' > "$RUNNER_TEMP/huntiq-added.txt" || true
-          if grep -E '(-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----|AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9_]{20,}|sk-[A-Za-z0-9_-]{20,}|ANTHROPIC_API_KEY[[:space:]]*=|GITHUB_TOKEN[[:space:]]*=)' "$RUNNER_TEMP/huntiq-added.txt"; then
+          if grep -E '(-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----|AKIA[0-9A-Z]{16}|ASIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,}|sk-(live-)?[A-Za-z0-9_-]{20,}|xox[baprs]-[A-Za-z0-9-]{20,}|AIza[0-9A-Za-z_-]{30,}|ANTHROPIC_API_KEY[[:space:]]*=|GITHUB_TOKEN[[:space:]]*=|STRIPE_SECRET_KEY[[:space:]]*=)' "$RUNNER_TEMP/huntiq-added.txt"; then
             echo '::error::Credential-like material detected in autonomous additions.'
             exit 1
           fi
