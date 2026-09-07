@@ -43,12 +43,11 @@ npm test
 
 `npm run typecheck` regenerates `worker-configuration.d.ts` via `wrangler types` (that file is gitignored).
 
-`AGENT.md` is a review-packet snapshot of `wrangler.jsonc`, `src/http.ts`, `src/enp.ts`, and `src/server.ts`. It sorts before `package-lock.json` so truncated automated reviews can still see the fail-closed `/enp` path. Do not edit it by hand; regenerate it from those files if they change.
-
 Root CI also runs:
-- `tests/huntiq-agent-http.test.js` against `handlePublicRequest` (malformed JSON, missing gate, asking prices, sold success)
+- `tests/huntiq-agent-http.test.js` against `handlePublicRequest`
+- `tests/huntiq-agent-tools.test.js` against the Think tool execute helpers
 - `tests/huntiq-agent-enp-contract.test.js` against `lib/enp-calculator.js`
-- `tests/huntiq-agent-wrangler.test.js` for tracing, secret-pattern, and AGENT.md snapshot checks
+- `tests/huntiq-agent-wrangler.test.js` for tracing and secret-pattern checks
 
 `npm run dry-run` is `wrangler deploy --dry-run` only. It must not publish the Worker.
 

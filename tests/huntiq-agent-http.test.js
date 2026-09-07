@@ -11,7 +11,8 @@ async function main() {
   const serverSource = require('fs').readFileSync(serverPath, 'utf8');
 
   assert.match(serverSource, /handlePublicRequest\(request\)/);
-  assert.match(serverSource, /execute:\s*async \(input\) => evaluateEnp\(input\)/);
+  assert.match(serverSource, /execute:\s*async \(input\) => runEvaluateEnpTool\(input\)/);
+  assert.match(serverSource, /execute:\s*async \(input\) => runCoachDealTool\(input\)/);
   assert.match(serverSource, /compKind:\s*z\s*\.\s*literal\("sold"\)/);
   assert.match(serverSource, /soldCompsConfirmed:\s*z\s*\.\s*literal\(true\)/);
   assert.doesNotMatch(serverSource, /storeMessages\s*=\s*true/);

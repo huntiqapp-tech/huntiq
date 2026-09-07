@@ -1,5 +1,6 @@
 import { coachFromEnp } from "./coach.ts";
-import { evaluateEnp, TRUST_LINE, type EnpInput } from "./enp.ts";
+import { TRUST_LINE, type EnpInput } from "./enp.ts";
+import { runEvaluateEnpTool } from "./tools.ts";
 
 function json(data: unknown, status = 200) {
   return Response.json(data, {
@@ -78,7 +79,7 @@ export async function handlePublicRequest(request: Request): Promise<Response | 
     } catch {
       return json({ ok: false, errors: ["Request body must be JSON."] }, 400);
     }
-    const enp = evaluateEnp((body ?? {}) as EnpInput);
+    const enp = runEvaluateEnpTool((body ?? {}) as EnpInput);
     if (!enp.ok) return json(enp, 400);
     return json({
       ...enp,

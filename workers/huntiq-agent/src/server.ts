@@ -2,9 +2,9 @@ import { Think } from "@cloudflare/think";
 import { routeAgentRequest } from "agents";
 import { tool } from "ai";
 import { z } from "zod";
-import { coachDeal } from "./coach.ts";
-import { evaluateEnp, TRUST_LINE } from "./enp.ts";
+import { TRUST_LINE } from "./enp.ts";
 import { handlePublicRequest } from "./http.ts";
+import { runCoachDealTool, runEvaluateEnpTool } from "./tools.ts";
 
 const SYSTEM_PROMPT = [
   "You are HUNTIQ's ENP / Deal Coach stub for future gethuntiq.com use.",
@@ -66,7 +66,7 @@ export class HuntiqAgent extends Think<Env> {
         description:
           "Calculate HUNTIQ ENP, acquisition-basis ROI, max buy, headroom, and BUY/MAYBE/PASS from user-supplied numbers only.",
         inputSchema: enpInputSchema,
-        execute: async (input) => evaluateEnp(input)
+        execute: async (input) => runEvaluateEnpTool(input)
       }),
       coachDeal: tool({
         description:
@@ -85,7 +85,7 @@ export class HuntiqAgent extends Think<Env> {
           soldCompsConfirmed: z.boolean().optional(),
           compKind: z.string().optional()
         }),
-        execute: async (input) => coachDeal(input)
+        execute: async (input) => runCoachDealTool(input)
       })
     };
   }
