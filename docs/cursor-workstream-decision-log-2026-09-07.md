@@ -8,13 +8,25 @@ Snapshot time: 2026-09-07 ~17:55 UTC.
 
 Delegation note: this environment can list existing Cursor agents but cannot message them. Tightly scoped fixes are left as owner handoffs below. Do not spawn a second landing-page agent; that owner is still running.
 
+## Refresh — 2026-09-07 ~17:58 UTC
+
+Verified with `gh` + `git fetch` of `cursor/landing-page-mockup-2576`, `cursor/live-ingestion-runner-9023`, and `cursor/pwa-customer-feed-boundary-46a1`. Product code was not edited.
+
+- **#136** new head `74d6cbb7cb34525a8ad20fc752d94ea5ad340d6a`. Not draft. `mergeable: MERGEABLE`, `mergeStateStatus: CLEAN`.
+- CI **success** on that head: [34149723035](https://github.com/huntiqapp-tech/huntiq/actions/runs/34149723035) (PR Guard / HUNTIQ tests).
+- Automated review on the new head: **PASS** ([comment](https://github.com/huntiqapp-tech/huntiq/pull/136#issuecomment-5574193549)). LOW findings only (string-level landing tests; no jsdom).
+- Still **NOT READY**. Green CI does not make #136 merge-ready: package remains **0.9.110**, `sw.js` still hardcodes `CACHE='huntiq-public-v110'`, and PWA overlap with #138 is unchanged.
+- Merge order unchanged: **#137 → #138 → #136 (rebased onto the v0.9.111 cache)**.
+- Landing owner `bc-15f57fd0-cd66-4ee1-bba4-a00d4d3f2576` is still **RUNNING**. Do not spawn a duplicate landing-page agent.
+- #137 still `7917c94`, CI green, BLOCK review still open. #138 still `947ce88`, CI green, BLOCK review still open. Dakota blockers unchanged.
+
 ## Ready / not-ready
 
 | PR | Head | CI (PR Guard / full `npm test`) | Automated review on head | Human review | Merge-ready |
 | --- | --- | --- | --- | --- | --- |
 | [#137](https://github.com/huntiqapp-tech/huntiq/pull/137) bounded ingestion | `7917c94` | **Green** — run [34148989247](https://github.com/huntiqapp-tech/huntiq/actions/runs/34148989247) on `7917c94`; ingestion-runner, observation-contract, upcitemdb, preflight, schedule, Bright Data, live-history all passed | **BLOCK** on `7917c94` ([comment](https://github.com/huntiqapp-tech/huntiq/pull/137#issuecomment-5574107455)) | none | **NOT READY** |
 | [#138](https://github.com/huntiqapp-tech/huntiq/pull/138) customer app / production data boundary | `947ce88` | **Green** — run [34148898022](https://github.com/huntiqapp-tech/huntiq/actions/runs/34148898022) on `947ce88`; customer-app-boundary, safe-storage, pwa-cache-manifest, pwa e2e, release-readiness passed | **BLOCK** on `947ce88` ([comment](https://github.com/huntiqapp-tech/huntiq/pull/138#issuecomment-5574097681)) | none | **NOT READY** |
-| [#136](https://github.com/huntiqapp-tech/huntiq/pull/136) landing page | `bf46700` (in flight) | **In progress** on `bf46700`; last green was `d2dea95` run [34149462861](https://github.com/huntiqapp-tech/huntiq/actions/runs/34149462861). No longer draft. | **PASS** through `d2dea95`; `bf46700` review not yet posted at snapshot | none | **NOT READY** |
+| [#136](https://github.com/huntiqapp-tech/huntiq/pull/136) landing page | `74d6cbb` | **Green** — run [34149723035](https://github.com/huntiqapp-tech/huntiq/actions/runs/34149723035) on `74d6cbb`. Not draft. `MERGEABLE` / `CLEAN`. | **PASS** on `74d6cbb` ([comment](https://github.com/huntiqapp-tech/huntiq/pull/136#issuecomment-5574193549)) | none | **NOT READY** (v110 cache collision + #138 PWA overlap) |
 
 Do not treat CI green as merge-ready. `AGENTS.md` requires no unresolved review objection.
 
@@ -51,7 +63,7 @@ File overlap verified:
 ## Provenance / customer-authority boundary (preserve)
 
 - Store / ZIP / channel stay isolated. Demo ZIP `18360` is sample identity, not a live local-market feed.
-- Asking prices (including eBay Browse) are not completed-sale comps. #136 `bf46700` is tightening that copy; keep it.
+- Asking prices (including eBay Browse) are not completed-sale comps. #136 `74d6cbb` continues that copy (eBay Evaluating is asking-only; sample-deal numbers hydrate from `demoDeals`); keep it.
 - Shadow / validation-only / unlabeled / incomplete-authority rows stay hidden from customers.
 - Browser never receives scraper snapshots, Bright Data raw rows, unvalidated RetailerAPI cells, or secrets.
 - Customer feed is server-owned: `buildCustomerAuthorizedLivePayload` → `HUNTIQ_CUSTOMER_FEED` only. #137 must not auto-promote shadow files into that envelope.
@@ -74,12 +86,12 @@ Independent manager check of `lib/ingestion-runner.js` on this head: the `ok` / 
 
 Independent manager check of `lib/customer-app-boundary.js`: `classifyRow` falls back to `{kind:'demo', customerVisible:true}` when `HuntIQDataState` is unavailable. That is a fail-open visibility path and matches the BLOCK finding. `fromDemoFallback` still trusts the caller flag. Fixture-mode query parsing still includes `huntiq-mode=1` plus a `fixture` param.
 
-### #136 `bf46700` (moving)
+### #136 `74d6cbb` (refreshed 17:58 UTC)
 
-- Owner agent `bc-15f57fd0-cd66-4ee1-bba4-a00d4d3f2576` is **RUNNING**.
-- Last completed PR Guard on `d2dea95`: [34149462861](https://github.com/huntiqapp-tech/huntiq/actions/runs/34149462861) success. Head `bf46700` CI was in progress at snapshot (`mergeStateStatus: UNSTABLE`).
-- Automated reviews PASS on presentation-only scope through `d2dea95` (demo labeling, 0 connected sources, asking vs sold, alerts off). `bf46700` adds “eBay Evaluating is asking-only.”
-- Collision with #138 is unresolved regardless of CI: v0.9.110 vs v0.9.111 and overlapping PWA files.
+- Owner agent `bc-15f57fd0-cd66-4ee1-bba4-a00d4d3f2576` is still **RUNNING**. Do not spawn a duplicate.
+- PR Guard success on `74d6cbb`: [34149723035](https://github.com/huntiqapp-tech/huntiq/actions/runs/34149723035). `isDraft: false`, `mergeable: MERGEABLE`, `mergeStateStatus: CLEAN`.
+- Automated review **PASS** on `74d6cbb` ([comment](https://github.com/huntiqapp-tech/huntiq/pull/136#issuecomment-5574193549)): presentation-only; eBay asking-only; 0 Connected / 5 Evaluating / 2 Restricted; sample-deal markup hydrates from `demoDeals`. LOW: landing tests remain string/regex, not DOM.
+- Collision with #138 is unresolved regardless of green CI: still **0.9.110 / `huntiq-public-v110`** (hardcoded `const CACHE` in `sw.js`) vs #138 **0.9.111 / `huntiq-public-v111`**. Overlap still `app.js`, `index.html`, `package.json`, `PROJECT_STATUS.md`, `README.md`, `styles.css`, `sw.js`.
 
 ## Owner follow-ups (do not spawn duplicates)
 
@@ -122,7 +134,7 @@ Cursor cannot message existing agents from this run. Paste the matching task int
 
 ### C. Landing-page owner — #136 — `bc-15f57fd0-cd66-4ee1-bba4-a00d4d3f2576` (RUNNING)
 
-**Task:** Finish the current asking-vs-sold copy polish, then **stop claiming v0.9.110**. Do not merge onto `main` until #138 has landed (or rebase onto #138 first if Dakota wants a stacked preview).
+**Task:** Asking-vs-sold copy on `74d6cbb` is in place (PASS review). Next: **stop claiming v0.9.110**. Do not merge onto `main` until #138 has landed (or rebase onto #138 first if Dakota wants a stacked preview). Do not spawn a second landing-page agent.
 
 **After #138 exists on the base:**
 
