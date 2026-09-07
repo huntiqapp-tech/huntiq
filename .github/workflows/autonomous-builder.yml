@@ -59,7 +59,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Authorize immutable OWNER bootstrap linkage
+      - name: Authorize immutable allowlisted OWNER bootstrap linkage
         if: steps.preflight.outputs.eligible == 'true'
         id: authorize
         env:
@@ -74,7 +74,7 @@ jobs:
           set -euo pipefail
           echo 'authorized=false' >> "$GITHUB_OUTPUT"
           echo 'pending=false' >> "$GITHUB_OUTPUT"
-          [[ -s .github/huntiq-autonomous-protected-paths.txt && -s .github/huntiq-invariant-tests.txt ]] || exit 0
+          [[ -s .github/huntiq-autonomous-protected-paths.txt && -s .github/huntiq-invariant-tests.txt && -s .github/huntiq-autonomous-owners.txt && -s .github/huntiq-credential-patterns.txt ]] || exit 0
 
           pr_json="$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER")"
           head_ref="$(jq -r '.head.ref' <<<"$pr_json")"
@@ -96,6 +96,7 @@ jobs:
           packet_issue="$(sed -n 's/^issue: //p' .huntiq/tasks/current.md | head -n1)"
           packet_bootstrap_run="$(sed -n 's/^bootstrap_run: //p' .huntiq/tasks/current.md | head -n1)"
           packet_association="$(sed -n 's/^bootstrap_author_association: //p' .huntiq/tasks/current.md | head -n1)"
+          packet_author="$(sed -n 's/^bootstrap_author_login: //p' .huntiq/tasks/current.md | head -n1)"
           packet_title_sha="$(sed -n 's/^bootstrap_title_sha256: //p' .huntiq/tasks/current.md | head -n1)"
           [[ "$packet_issue" == "$issue" && "$packet_bootstrap_run" == "$bootstrap_run" && "$packet_association" == 'OWNER' && "$packet_title_sha" =~ ^[0-9a-f]{64}$ ]] || exit 0
 
@@ -104,7 +105,8 @@ jobs:
           title="$(jq -r '.title' <<<"$issue_json")"
           issue_author="$(jq -r '.user.login' <<<"$issue_json")"
           live_title_sha="$(printf '%s' "$title" | sha256sum | awk '{print $1}')"
-          [[ "$association" == 'OWNER' && "$title" == '[AI BUILD]'* && "$live_title_sha" == "$packet_title_sha" ]] || exit 0
+          [[ "$association" == 'OWNER' && "$title" == '[AI BUILD]'* && "$live_title_sha" == "$packet_title_sha" && "$issue_author" == "$packet_author" ]] || exit 0
+          grep -Fxq "$issue_author" .github/huntiq-autonomous-owners.txt || exit 0
 
           bootstrap_json="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$bootstrap_run")"
           [[ "$(jq -r '.id' <<<"$bootstrap_json")" == "$bootstrap_run" ]] || exit 0
@@ -183,6 +185,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          [[ -s .github/huntiq-autonomous-protected-paths.txt && -s .github/huntiq-invariant-tests.txt && -s .github/huntiq-credential-patterns.txt ]] || exit 1
           mapfile -t protected < <(grep -Ev '^[[:space:]]*(#|$)' .github/huntiq-autonomous-protected-paths.txt)
           ((${#protected[@]} > 0)) || exit 1
           ! git diff --name-only origin/main...HEAD -- "${protected[@]}" | grep -q . || { echo '::error::Authorized branch already contains a protected trust/invariant change.'; exit 1; }
@@ -201,19 +204,19 @@ jobs:
       - name: Run full HUNTIQ test suite
         run: npm test
 
-      - name: Build added-lines stream and run fast credential checks
+      - name: Build added-lines stream and run centralized credential checks
         shell: bash
         run: |
           set -euo pipefail
           git diff --unified=0 origin/main...HEAD > "$RUNNER_TEMP/huntiq-branch.diff"
           git diff --unified=0 > "$RUNNER_TEMP/huntiq-worktree.diff"
           cat "$RUNNER_TEMP/huntiq-branch.diff" "$RUNNER_TEMP/huntiq-worktree.diff" | grep '^+' | grep -Ev '^\+\+\+' > "$RUNNER_TEMP/huntiq-added.txt" || true
-          if grep -Ei '(-----BEGIN ([A-Z0-9 ]+)?PRIVATE KEY-----|AKIA[0-9A-Z]{16}|ASIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,}|sk-(live-)?[A-Za-z0-9_-]{20,}|xox[baprs]-[A-Za-z0-9-]{20,}|AIza[0-9A-Za-z_-]{30,}|SG\.[A-Za-z0-9_-]{15,}\.[A-Za-z0-9_-]{15,}|SK[0-9a-f]{32}|eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}|(PASSWORD|PASSWD|SECRET|TOKEN|API_KEY|PRIVATE_KEY)[[:space:]]*=[[:space:]]*[^[:space:]#]{8,}|DATABASE_URL[[:space:]]*=[[:space:]]*[^[:space:]#]+)' "$RUNNER_TEMP/huntiq-added.txt"; then
+          if grep -Eif .github/huntiq-credential-patterns.txt "$RUNNER_TEMP/huntiq-added.txt"; then
             echo '::error::Credential-like material detected in autonomous additions.'
             exit 1
           fi
 
-      - name: Scan autonomous additions with pinned TruffleHog
+      - name: Scan additions and complete candidate tree with pinned TruffleHog
         shell: bash
         env:
           TRUFFLEHOG_VERSION: '3.97.4'
@@ -222,23 +225,32 @@ jobs:
           set -euo pipefail
           archive="$RUNNER_TEMP/trufflehog.tar.gz"
           bin_dir="$RUNNER_TEMP/trufflehog-bin"
-          scan_dir="$RUNNER_TEMP/trufflehog-scan"
-          mkdir -p "$bin_dir" "$scan_dir"
+          added_dir="$RUNNER_TEMP/trufflehog-added"
+          tree_dir="$RUNNER_TEMP/trufflehog-tree"
+          mkdir -p "$bin_dir" "$added_dir" "$tree_dir"
           curl -fsSL "https://github.com/trufflesecurity/trufflehog/releases/download/v${TRUFFLEHOG_VERSION}/trufflehog_${TRUFFLEHOG_VERSION}_linux_amd64.tar.gz" -o "$archive"
           echo "${TRUFFLEHOG_SHA256}  ${archive}" | sha256sum -c -
           tar -xzf "$archive" -C "$bin_dir" trufflehog
-          cp "$RUNNER_TEMP/huntiq-added.txt" "$scan_dir/added-lines.txt"
-          set +e
-          "$bin_dir/trufflehog" --no-update --no-verification --results=unverified --fail --fail-on-scan-errors filesystem "$scan_dir" >"$RUNNER_TEMP/trufflehog.out" 2>&1
-          rc=$?
-          set -e
-          if [[ $rc -eq 183 ]]; then
-            echo '::error::TruffleHog detected credential material in autonomous additions.'
-            exit 1
-          elif [[ $rc -ne 0 ]]; then
-            echo "::error::TruffleHog secret scan failed closed (exit $rc)."
-            exit 1
-          fi
+          cp "$RUNNER_TEMP/huntiq-added.txt" "$added_dir/added-lines.txt"
+          while IFS= read -r file; do
+            [[ -f "$file" ]] || continue
+            mkdir -p "$tree_dir/$(dirname "$file")"
+            cp "$file" "$tree_dir/$file"
+          done < <(git ls-files --cached --others --exclude-standard)
+          for scan_dir in "$added_dir" "$tree_dir"; do
+            set +e
+            "$bin_dir/trufflehog" --no-update --no-verification --results=unverified --fail --fail-on-scan-errors filesystem "$scan_dir" >"$RUNNER_TEMP/trufflehog-$(basename "$scan_dir").out" 2>&1
+            rc=$?
+            set -e
+            if [[ $rc -eq 183 ]]; then
+              echo "::error::TruffleHog detected credential material in $(basename "$scan_dir")."
+              cat "$RUNNER_TEMP/trufflehog-$(basename "$scan_dir").out"
+              exit 1
+            elif [[ $rc -ne 0 ]]; then
+              echo "::error::TruffleHog secret scan failed closed for $(basename "$scan_dir") (exit $rc)."
+              exit 1
+            fi
+          done
 
       - name: Package validated implementation patch
         env:
@@ -286,7 +298,7 @@ jobs:
       issues: read
       actions: read
     steps:
-      - name: Re-authorize exact PR and OWNER task before publishing
+      - name: Re-authorize exact PR and allowlisted OWNER task before publishing
         id: gate
         env:
           GH_TOKEN: ${{ github.token }}
@@ -308,7 +320,9 @@ jobs:
           [[ "$head_repo" == "$GITHUB_REPOSITORY" && "$creator" == 'github-actions[bot]' && "$base_ref" == 'main' && "$state" == 'open' ]] || exit 1
           [[ "$head_ref" =~ ^ai/issue-([0-9]+)-([0-9]+)$ && "${BASH_REMATCH[1]}" == "$EXPECTED_ISSUE" ]] || exit 1
           issue_json="$(gh api "repos/$GITHUB_REPOSITORY/issues/$EXPECTED_ISSUE")"
+          issue_author="$(jq -r '.user.login' <<<"$issue_json")"
           [[ "$(jq -r '.author_association' <<<"$issue_json")" == 'OWNER' && "$(jq -r '.title' <<<"$issue_json")" == '[AI BUILD]'* ]] || exit 1
+          grep -Fxq "$issue_author" .github/huntiq-autonomous-owners.txt || exit 1
           echo "head_ref=$head_ref" >> "$GITHUB_OUTPUT"
           echo "head_sha=$head_sha" >> "$GITHUB_OUTPUT"
 
@@ -331,10 +345,14 @@ jobs:
           [[ "$(sed -n 's/^status: //p' .huntiq/tasks/current.md | head -n1)" == 'pending' ]] || { echo '::error::Task is no longer pending.'; exit 1; }
           [[ "$(sed -n 's/^issue: //p' .huntiq/tasks/current.md | head -n1)" == "$ISSUE" ]] || exit 1
           [[ "$(sed -n 's/^bootstrap_run: //p' .huntiq/tasks/current.md | head -n1)" == "$BOOTSTRAP_RUN" ]] || exit 1
+          packet_author="$(sed -n 's/^bootstrap_author_login: //p' .huntiq/tasks/current.md | head -n1)"
           packet_title_sha="$(sed -n 's/^bootstrap_title_sha256: //p' .huntiq/tasks/current.md | head -n1)"
-          live_title="$(gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE" --jq '.title')"
+          issue_json="$(gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE")"
+          live_title="$(jq -r '.title' <<<"$issue_json")"
+          issue_author="$(jq -r '.user.login' <<<"$issue_json")"
           live_title_sha="$(printf '%s' "$live_title" | sha256sum | awk '{print $1}')"
-          [[ "$packet_title_sha" == "$live_title_sha" ]] || exit 1
+          [[ "$packet_title_sha" == "$live_title_sha" && "$packet_author" == "$issue_author" ]] || exit 1
+          grep -Fxq "$issue_author" .github/huntiq-autonomous-owners.txt || exit 1
 
       - name: Download validated implementation artifact
         uses: actions/download-artifact@v4
@@ -367,7 +385,7 @@ jobs:
           }
           staged_added="$RUNNER_TEMP/publisher-added.txt"
           git diff --cached --unified=0 | grep '^+' | grep -Ev '^\+\+\+' > "$staged_added" || true
-          if grep -Ei '(-----BEGIN ([A-Z0-9 ]+)?PRIVATE KEY-----|AKIA[0-9A-Z]{16}|ASIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,}|sk-(live-)?[A-Za-z0-9_-]{20,}|xox[baprs]-[A-Za-z0-9-]{20,}|AIza[0-9A-Za-z_-]{30,}|SG\.[A-Za-z0-9_-]{15,}\.[A-Za-z0-9_-]{15,}|SK[0-9a-f]{32}|eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}|(PASSWORD|PASSWD|SECRET|TOKEN|API_KEY|PRIVATE_KEY)[[:space:]]*=[[:space:]]*[^[:space:]#]{8,}|DATABASE_URL[[:space:]]*=[[:space:]]*[^[:space:]#]+)' "$staged_added"; then
+          if grep -Eif .github/huntiq-credential-patterns.txt "$staged_added"; then
             echo '::error::Credential-like material detected at autonomous publish boundary.'
             exit 1
           fi
