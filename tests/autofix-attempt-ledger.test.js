@@ -46,10 +46,12 @@ assert.throws(
   /disagree/,
   'fabricated comment/commit SHA pairs must fail closed'
 );
+const wrongParentCommit = commit(1, sha1, sha0);
+wrongParentCommit.parents = [{ sha: sha3 }];
 assert.throws(
-  () => countAttempts([comment(1, sha1)], [commit(1, sha1, sha3)]),
+  () => countAttempts([comment(1, sha1)], [wrongParentCommit]),
   /reviewed parent/,
-  'repair commits must be direct children of the reviewed SHA'
+  'repair commits must be direct children of the reviewed SHA recorded in the commit marker'
 );
 assert.throws(
   () => countAttempts([comment(1, sha1), comment(1, sha1)], [commit(1, sha1, sha0)]),
