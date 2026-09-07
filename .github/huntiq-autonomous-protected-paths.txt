@@ -3,6 +3,11 @@
 .github/
 docs/autonomy-review-contract.md
 docs/autonomy-review-provenance.md
+scripts/claude-pr-review.py
+scripts/autonomous-repair-budget.js
+tests/autonomy-trusted-review-producer.test.js
+tests/autonomous-repair-budget.test.js
+tests/retailerapi-customer-pwa.integration.test.js
 tests/autonomy-product-invariants.integration.test.js
 tests/customer-live-payload.test.js
 tests/customer-pwa-authority-gate.test.js
