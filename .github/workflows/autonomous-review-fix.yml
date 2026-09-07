@@ -18,37 +18,105 @@ concurrency:
 
 jobs:
   fix:
-    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'workflow_run' }}
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'workflow_run' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - name: Download exact trusted review artifacts
+      - name: Verify trusted production review producer
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REVIEW_RUN_ID: ${{ github.event.workflow_run.id }}
+          EXPECTED_REVIEW_WORKFLOW_ID: '350986158'
+          EXPECTED_REVIEW_WORKFLOW_BLOB: '99594e96d23d163b3cf75e54b5b8e7be4ec9cf16'
+        shell: bash
+        run: |
+          set -euo pipefail
+          run_json="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$REVIEW_RUN_ID")"
+          [[ "$(jq -r '.id' <<<"$run_json")" == "$REVIEW_RUN_ID" ]]
+          [[ "$(jq -r '.workflow_id' <<<"$run_json")" == "$EXPECTED_REVIEW_WORKFLOW_ID" ]]
+          [[ "$(jq -r '.name' <<<"$run_json")" == 'HUNTIQ agent review handoff' ]]
+          [[ "$(jq -r '.path' <<<"$run_json")" == '.github/workflows/agent-review.yml' ]]
+          [[ "$(jq -r '.event' <<<"$run_json")" == 'workflow_run' ]]
+          [[ "$(jq -r '.conclusion' <<<"$run_json")" == 'success' ]]
+          [[ "$(jq -r '.head_branch' <<<"$run_json")" == 'main' ]]
+          [[ "$(jq -r '.head_repository.full_name' <<<"$run_json")" == "$GITHUB_REPOSITORY" ]]
+
+          producer_blob="$(gh api "repos/$GITHUB_REPOSITORY/contents/.github/workflows/agent-review.yml?ref=main" --jq '.sha')"
+          [[ "$producer_blob" == "$EXPECTED_REVIEW_WORKFLOW_BLOB" ]] || {
+            echo '::error::Trusted review producer changed on main; refusing autonomous repair until PM re-pins it.'
+            exit 1
+          }
+
+          artifacts_json="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$REVIEW_RUN_ID/artifacts?per_page=100")"
+          [[ "$(jq -r '.total_count' <<<"$artifacts_json")" == '2' ]] || {
+            echo '::error::Trusted review run did not expose exactly one packet and one sanitized result artifact.'
+            exit 1
+          }
+          [[ "$(jq '[.artifacts[] | select((.name | startswith("huntiq-review-packet-")) and (.expired == false))] | length' <<<"$artifacts_json")" == '1' ]]
+          [[ "$(jq '[.artifacts[] | select((.name | startswith("huntiq-review-result-")) and (.expired == false))] | length' <<<"$artifacts_json")" == '1' ]]
+
+      - name: Download exact trusted review packet
         uses: actions/download-artifact@v4
         with:
-          pattern: huntiq-review-*
+          pattern: huntiq-review-packet-*
           path: .huntiq-handoff
-          merge-multiple: false
+          merge-multiple: true
           github-token: ${{ github.token }}
           repository: ${{ github.repository }}
           run-id: ${{ github.event.workflow_run.id }}
 
-      - name: Validate reviewed revision and repair budget
+      - name: Validate reviewed revision, tested provenance, and repair budget
         id: decide
         env:
           GH_TOKEN: ${{ github.token }}
+          REVIEW_RUN_ID: ${{ github.event.workflow_run.id }}
+          EXPECTED_TEST_WORKFLOW_BLOB: 'c53d191ea87bb0464a1a8aa840a1b90a94981597'
         shell: bash
         run: |
           set -euo pipefail
-          verdict_file="$(find .huntiq-handoff -type f -name verdict.txt -print -quit)"
+          verdict_file=".huntiq-handoff/../.huntiq-review-result/verdict.txt"
           metadata_file="$(find .huntiq-handoff -type f -name metadata.txt -print -quit)"
-          [[ -n "$verdict_file" && -n "$metadata_file" ]] || { echo 'fix=false' >> "$GITHUB_OUTPUT"; exit 0; }
-          verdict="$(tr -d '\r\n ' < "$verdict_file")"
+          [[ -n "$metadata_file" ]] || { echo 'fix=false' >> "$GITHUB_OUTPUT"; exit 0; }
+
           pr_number="$(sed -n 's/^pr_number=//p' "$metadata_file" | head -n1)"
           reviewed_sha="$(sed -n 's/^head_sha=//p' "$metadata_file" | head -n1)"
           reviewed_repo="$(sed -n 's/^repository=//p' "$metadata_file" | head -n1)"
+          test_run_url="$(sed -n 's/^workflow_run=//p' "$metadata_file" | head -n1)"
           max_attempts="$(sed -n 's/^max_automated_fix_attempts=//p' "$metadata_file" | head -n1)"
-          [[ "$verdict" == 'BLOCK' && "$pr_number" =~ ^[0-9]+$ && "$reviewed_sha" =~ ^[0-9a-f]{40}$ ]] || { echo 'fix=false' >> "$GITHUB_OUTPUT"; exit 0; }
-          [[ "$reviewed_repo" == "$GITHUB_REPOSITORY" && "$max_attempts" == '2' ]] || { echo 'fix=false' >> "$GITHUB_OUTPUT"; exit 0; }
+          auto_merge="$(sed -n 's/^auto_merge=//p' "$metadata_file" | head -n1)"
+          [[ "$pr_number" =~ ^[0-9]+$ && "$reviewed_sha" =~ ^[0-9a-f]{40}$ ]] || { echo 'fix=false' >> "$GITHUB_OUTPUT"; exit 0; }
+          [[ "$reviewed_repo" == "$GITHUB_REPOSITORY" && "$max_attempts" == '2' && "$auto_merge" == 'false' ]] || { echo 'fix=false' >> "$GITHUB_OUTPUT"; exit 0; }
+
+          artifacts_json="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$REVIEW_RUN_ID/artifacts?per_page=100")"
+          packet_name="$(jq -r '.artifacts[] | select(.name | startswith("huntiq-review-packet-")) | .name' <<<"$artifacts_json")"
+          result_name="$(jq -r '.artifacts[] | select(.name | startswith("huntiq-review-result-")) | .name' <<<"$artifacts_json")"
+          [[ "$packet_name" == "huntiq-review-packet-${reviewed_sha}" && "$result_name" == "huntiq-review-result-${reviewed_sha}" ]] || {
+            echo '::error::Review artifact names are not bound to the reviewed SHA.'
+            exit 1
+          }
+
+          test_run_id="${test_run_url##*/}"
+          [[ "$test_run_id" =~ ^[0-9]+$ && "$test_run_url" == "https://github.com/$GITHUB_REPOSITORY/actions/runs/$test_run_id" ]] || {
+            echo '::error::Review packet does not identify a canonical HUNTIQ test run URL.'
+            exit 1
+          }
+          test_json="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$test_run_id")"
+          [[ "$(jq -r '.name' <<<"$test_json")" == 'HUNTIQ tests' ]]
+          [[ "$(jq -r '.path' <<<"$test_json")" == '.github/workflows/test.yml' ]]
+          [[ "$(jq -r '.event' <<<"$test_json")" == 'pull_request' ]]
+          [[ "$(jq -r '.conclusion' <<<"$test_json")" == 'success' ]]
+          [[ "$(jq -r '.head_repository.full_name' <<<"$test_json")" == "$GITHUB_REPOSITORY" ]]
+          [[ "$(jq -r '.head_sha' <<<"$test_json")" == "$reviewed_sha" ]]
+          jq -e --argjson pr "$pr_number" '.pull_requests | any(.number == $pr)' <<<"$test_json" >/dev/null
+          test_blob="$(gh api "repos/$GITHUB_REPOSITORY/contents/.github/workflows/test.yml?ref=main" --jq '.sha')"
+          [[ "$test_blob" == "$EXPECTED_TEST_WORKFLOW_BLOB" ]] || {
+            echo '::error::HUNTIQ test workflow changed on main; refusing autonomous repair until PM re-pins it.'
+            exit 1
+          }
+
           pr_json="$(gh api "repos/$GITHUB_REPOSITORY/pulls/$pr_number")"
           branch="$(jq -r '.head.ref' <<<"$pr_json")"
           current_sha="$(jq -r '.head.sha' <<<"$pr_json")"
@@ -57,13 +125,74 @@ jobs:
           state="$(jq -r '.state' <<<"$pr_json")"
           creator="$(jq -r '.user.login' <<<"$pr_json")"
           body="$(jq -r '.body // ""' <<<"$pr_json")"
+          commit_count="$(jq -r '.commits' <<<"$pr_json")"
           [[ "$branch" =~ ^ai/issue-([0-9]+)-([0-9]+)$ ]] || { echo 'fix=false' >> "$GITHUB_OUTPUT"; exit 0; }
           issue="${BASH_REMATCH[1]}"
           [[ "$head_repo" == "$GITHUB_REPOSITORY" && "$base" == 'main' && "$state" == 'open' && "$creator" == 'github-actions[bot]' && "$current_sha" == "$reviewed_sha" ]] || { echo 'fix=false' >> "$GITHUB_OUTPUT"; exit 0; }
           [[ "$body" == *"Closes #${issue}"* ]] || { echo 'fix=false' >> "$GITHUB_OUTPUT"; exit 0; }
           issue_json="$(gh api "repos/$GITHUB_REPOSITORY/issues/$issue")"
           [[ "$(jq -r '.author_association' <<<"$issue_json")" == 'OWNER' && "$(jq -r '.title' <<<"$issue_json")" == '[AI BUILD]'* ]] || { echo 'fix=false' >> "$GITHUB_OUTPUT"; exit 0; }
-          attempts="$(gh api --paginate "repos/$GITHUB_REPOSITORY/issues/$pr_number/comments" --jq '.[] | select(.user.login == "github-actions[bot]") | .body' | grep -c '^<!-- huntiq-autofix-attempt:' || true)"
+          (( commit_count < 100 )) || { echo '::error::Autonomous PR commit history exceeds bounded verifier capacity.'; exit 1; }
+
+          comments_file="$RUNNER_TEMP/huntiq-pr-comments.json"
+          commits_file="$RUNNER_TEMP/huntiq-pr-commits.json"
+          gh api "repos/$GITHUB_REPOSITORY/issues/$pr_number/comments?per_page=100" > "$comments_file"
+          gh api "repos/$GITHUB_REPOSITORY/pulls/$pr_number/commits?per_page=100" > "$commits_file"
+          attempts="$(COMMENTS_FILE="$comments_file" COMMITS_FILE="$commits_file" python3 - <<'PY'
+          import json, os, re
+          comments = json.load(open(os.environ['COMMENTS_FILE']))
+          commits = json.load(open(os.environ['COMMITS_FILE']))
+          if len(comments) >= 100 or len(commits) >= 100:
+              raise SystemExit('ambiguous paginated attempt history')
+
+          comment_re = re.compile(r'^<!-- huntiq-autofix-attempt:([12]):([0-9a-f]{40}) -->\n')
+          commit_re = re.compile(
+              r'^fix: bounded autonomous review repair ([12])/2\n\n'
+              r'HUNTIQ-Autofix-Attempt: ([12])\n'
+              r'HUNTIQ-Reviewed-SHA: ([0-9a-f]{40})$'
+          )
+          comment_map = {}
+          for comment in comments:
+              body = comment.get('body') or ''
+              if comment.get('user', {}).get('login') != 'github-actions[bot]':
+                  continue
+              if 'huntiq-autofix-attempt:' not in body:
+                  continue
+              match = comment_re.match(body)
+              if not match:
+                  raise SystemExit('malformed or edited autonomous attempt comment')
+              attempt = int(match.group(1))
+              sha = match.group(2)
+              if attempt in comment_map:
+                  raise SystemExit('duplicate autonomous attempt comment')
+              comment_map[attempt] = sha
+
+          commit_map = {}
+          for commit in commits:
+              message = commit.get('commit', {}).get('message') or ''
+              if 'HUNTIQ-Autofix-Attempt:' not in message:
+                  continue
+              match = commit_re.fullmatch(message)
+              if not match or match.group(1) != match.group(2):
+                  raise SystemExit('malformed autonomous attempt commit')
+              attempt = int(match.group(1))
+              reviewed_sha = match.group(3)
+              sha = commit.get('sha')
+              parents = commit.get('parents') or []
+              if len(parents) != 1 or parents[0].get('sha') != reviewed_sha:
+                  raise SystemExit('autonomous attempt commit is not bound to its reviewed parent')
+              if attempt in commit_map:
+                  raise SystemExit('duplicate autonomous attempt commit')
+              commit_map[attempt] = sha
+
+          if comment_map != commit_map:
+              raise SystemExit('attempt comments and immutable PR commit history disagree')
+          keys = sorted(commit_map)
+          if keys != list(range(1, len(keys) + 1)) or len(keys) > 2:
+              raise SystemExit('non-contiguous or over-budget autonomous attempt history')
+          print(len(keys))
+          PY
+          )"
           if (( attempts >= 2 )); then
             gh pr comment "$pr_number" --repo "$GITHUB_REPOSITORY" --body "Autonomous fix cap reached (2/2). Escalating to the HUNTIQ project manager; no additional agent writes will be attempted automatically."
             echo 'fix=false' >> "$GITHUB_OUTPUT"
@@ -87,7 +216,6 @@ jobs:
       - name: Re-authorize OWNER task and protected paths
         if: steps.decide.outputs.fix == 'true'
         env:
-          GH_TOKEN: ${{ github.token }}
           ISSUE: ${{ steps.decide.outputs.issue }}
         shell: bash
         run: |
@@ -100,7 +228,7 @@ jobs:
             exit 1
           fi
 
-      - name: Re-download sanitized findings from exact review run
+      - name: Download sanitized findings from exact trusted review run
         if: steps.decide.outputs.fix == 'true'
         uses: actions/download-artifact@v4
         with:
@@ -110,6 +238,20 @@ jobs:
           github-token: ${{ github.token }}
           repository: ${{ github.repository }}
           run-id: ${{ github.event.workflow_run.id }}
+
+      - name: Confirm BLOCK verdict from sanitized result
+        if: steps.decide.outputs.fix == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$(tr -d '\r\n ' < .huntiq-review-result/verdict.txt)" == 'BLOCK' ]] || {
+            echo '::error::Bounded repair may run only for an exact BLOCK verdict.'
+            exit 1
+          }
+          [[ -s .huntiq-review-result/findings.json ]] || {
+            echo '::error::Sanitized BLOCK findings are missing.'
+            exit 1
+          }
 
       - name: Fix BLOCK findings with Claude
         if: steps.decide.outputs.fix == 'true'
@@ -144,7 +286,7 @@ jobs:
           git diff --unified=0 origin/main...HEAD > "$RUNNER_TEMP/huntiq.diff"
           git diff --unified=0 > "$RUNNER_TEMP/huntiq-worktree.diff"
           cat "$RUNNER_TEMP/huntiq.diff" "$RUNNER_TEMP/huntiq-worktree.diff" | grep '^+' | grep -Ev '^\+\+\+' > "$RUNNER_TEMP/huntiq-added.txt" || true
-          if grep -E '(-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----|AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9_]{20,}|sk-[A-Za-z0-9_-]{20,}|ANTHROPIC_API_KEY[[:space:]]*=|GITHUB_TOKEN[[:space:]]*=)' "$RUNNER_TEMP/huntiq-added.txt"; then
+          if grep -E '(-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----|AKIA[0-9A-Z]{16}|ASIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,}|sk-(live-)?[A-Za-z0-9_-]{20,}|xox[baprs]-[A-Za-z0-9-]{20,}|AIza[0-9A-Za-z_-]{30,}|ANTHROPIC_API_KEY[[:space:]]*=|GITHUB_TOKEN[[:space:]]*=|STRIPE_SECRET_KEY[[:space:]]*=)' "$RUNNER_TEMP/huntiq-added.txt"; then
             echo '::error::Credential-like material detected in autonomous repair additions.'
             exit 1
           fi
@@ -156,6 +298,7 @@ jobs:
           ATTEMPT: ${{ steps.decide.outputs.attempt }}
           BRANCH: ${{ steps.decide.outputs.branch }}
           PR_NUMBER: ${{ steps.decide.outputs.pr_number }}
+          REVIEWED_SHA: ${{ steps.decide.outputs.reviewed_sha }}
         shell: bash
         run: |
           set -euo pipefail
@@ -170,6 +313,13 @@ jobs:
             echo '::error::Refusing to commit protected workflow changes.'
             exit 1
           fi
-          gh pr comment "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --body "<!-- huntiq-autofix-attempt:${ATTEMPT} -->\nAutonomous repair attempt ${ATTEMPT}/2 is being applied to reviewed SHA ${{ steps.decide.outputs.reviewed_sha }}."
-          git commit -m "fix: bounded autonomous review repair ${ATTEMPT}/2"
+          git commit -F - <<EOF
+          fix: bounded autonomous review repair ${ATTEMPT}/2
+
+          HUNTIQ-Autofix-Attempt: ${ATTEMPT}
+          HUNTIQ-Reviewed-SHA: ${REVIEWED_SHA}
+          EOF
+          repair_sha="$(git rev-parse HEAD)"
+          marker="$(printf '<!-- huntiq-autofix-attempt:%s:%s -->\nAutonomous repair attempt %s/2 is being applied to reviewed SHA %s.' "$ATTEMPT" "$repair_sha" "$ATTEMPT" "$REVIEWED_SHA")"
+          gh pr comment "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --body "$marker"
           git push origin HEAD:"$BRANCH"
