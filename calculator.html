@@ -67,6 +67,7 @@
         <fieldset class="panel calc-fieldset">
           <div class="eyebrow">SELL</div>
           <h2>Comps you already have</h2>
+          <p class="field-hint">Use completed / sold comps, not current asking prices.</p>
           <div class="calc-grid">
             <label class="field">
               <span>Marketplace</span>
@@ -75,10 +76,12 @@
             <label class="field">
               <span>Expected sell price *</span>
               <input name="sellPrice" type="number" inputmode="decimal" min="0.01" step="0.01" required placeholder="89.00">
+              <small class="field-hint">Enter a completed/sold comp, not a current asking price.</small>
             </label>
             <label class="field">
               <span>Conservative sell low</span>
               <input name="conservativeSell" type="number" inputmode="decimal" min="0" step="0.01" placeholder="Optional">
+              <small class="field-hint">Optional sold-comp floor, not an active listing.</small>
             </label>
             <label class="field">
               <span>Optimistic sell high</span>
@@ -95,6 +98,7 @@
             <label class="field">
               <span>Other fees</span>
               <input name="otherFees" type="number" inputmode="decimal" min="0" step="0.01" value="0">
+              <small class="field-hint">Only confirmed-eligible fees or discounts. Unqualified promos stay out.</small>
             </label>
           </div>
         </fieldset>
@@ -124,6 +128,7 @@
         <div class="eyebrow">SOFT GATE</div>
         <h2>$9 unlock — coming soon</h2>
         <p>This device has used today’s 3 free calculations. Unlock is a Gumroad placeholder only — no Stripe and no live checkout.</p>
+        <p class="trust-line">Unlock does not turn these numbers into live Keepa or Home Depot evidence. Comps stay user-entered.</p>
         <button id="unlockStub" class="secondary" type="button">Gumroad stub</button>
         <p id="unlockSoon" class="notice" hidden><strong>Coming soon.</strong> Paid unlock is not live. Recheck after midnight local time for 3 more free runs.</p>
       </div>
