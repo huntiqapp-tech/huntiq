@@ -37,7 +37,13 @@ const enpInputSchema = z.object({
   conservativeSell: z.number().nonnegative().optional().describe("Optional low sold-comp."),
   optimisticSell: z.number().nonnegative().optional().describe("Optional high sold-comp."),
   targetRoi: z.number().nonnegative().optional().describe("Target ROI percent. Defaults to 30."),
-  minProfit: z.number().optional().describe("Minimum profit dollars. Defaults to 15.")
+  minProfit: z.number().optional().describe("Minimum profit dollars. Defaults to 15."),
+  compKind: z
+    .literal("sold")
+    .describe("Must be completed sold comps. Asking, active, or cancelled listings are rejected."),
+  soldCompsConfirmed: z
+    .literal(true)
+    .describe("User confirms these are completed sales, not asking prices.")
 });
 
 /**
@@ -74,7 +80,9 @@ export class HuntiqAgent extends Think<Env> {
           verdict: z.enum(["BUY", "MAYBE", "PASS", "WATCH", "SKIP"]).optional(),
           downsideEnp: z.number().nullable().optional(),
           compsAreUserEntered: z.boolean().optional(),
-          feesAreConfirmed: z.boolean().optional()
+          feesAreConfirmed: z.boolean().optional(),
+          soldCompsConfirmed: z.boolean().optional(),
+          compKind: z.string().optional()
         }),
         execute: async (input) => coachDeal(input)
       })
@@ -117,11 +125,11 @@ function landingPage() {
       <p>Local chat uses the Think / Agents WebSocket protocol at the <code>HuntiqAgent</code> Durable Object. Health and ENP JSON helpers:</p>
       <ul>
         <li><a href="/health">GET /health</a></li>
-        <li>POST /enp with the same user-supplied numbers as the calculator</li>
+        <li>POST /enp with sold comps confirmed (asking prices fail closed)</li>
       </ul>
       <pre>curl -s http://127.0.0.1:8787/enp \\
   -H 'content-type: application/json' \\
-  -d '{"buyPrice":20,"sellPrice":80,"fbaOrShipOut":10,"marketplace":"amazon-fba"}'</pre>
+  -d '{"buyPrice":20,"sellPrice":80,"fbaOrShipOut":10,"marketplace":"amazon-fba","compKind":"sold","soldCompsConfirmed":true}'</pre>
     </main>
   </body>
 </html>`;

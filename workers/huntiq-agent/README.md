@@ -9,7 +9,8 @@ This package lives beside the public GitHub Pages PWA. It does **not** replace `
 - Turn owner: **Think** (`HuntiqAgent` extends `Think` from `@cloudflare/think` in `src/server.ts`).
 - Job: ENP / Deal Coach stub. Users paste buy prices, sold comps, and confirmed fees.
 - No scrape API keys. No Keepa, Bright Data, Oxylabs, or RetailerAPI calls.
-- ENP math matches the public calculator rules (acquisition-basis ROI, sold comps only).
+- ENP math is locked to `lib/enp-calculator.js` by `tests/huntiq-agent-enp-contract.test.js` (same fixtures, identical outputs).
+- The `/enp` and `evaluateEnp` tool paths fail closed unless `compKind` is `sold` and `soldCompsConfirmed` is true. Asking/active/cancelled listings, MSRP, rebates, store credit, and promo discounts cannot set ENP.
 - The coach never claims a live pricing error.
 
 ## Local run

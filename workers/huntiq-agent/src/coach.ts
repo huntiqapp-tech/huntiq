@@ -11,6 +11,8 @@ export type CoachInput = {
   downsideEnp?: number | null;
   compsAreUserEntered?: boolean;
   feesAreConfirmed?: boolean;
+  soldCompsConfirmed?: boolean;
+  compKind?: string;
 };
 
 export type CoachResult = {
@@ -42,7 +44,16 @@ export function coachDeal(input: CoachInput = {}): CoachResult {
   const cautions: string[] = [];
   const compsAreUserEntered = input.compsAreUserEntered !== false;
   const feesAreConfirmed = input.feesAreConfirmed === true;
+  const soldCompsConfirmed = input.soldCompsConfirmed === true;
+  const compKind = String(input.compKind || "unknown").toLowerCase();
+  const usedAsking = ["asking", "active", "cancelled"].includes(compKind);
 
+  if (usedAsking) {
+    cautions.push("Asking, active, or cancelled listings are not sold comps and cannot justify ENP.");
+  }
+  if (!soldCompsConfirmed) {
+    cautions.push("Sold comps are not confirmed. ENP coaching fails closed until completed sales are marked.");
+  }
   if (compsAreUserEntered) {
     cautions.push(
       "Sold comps are user-entered. This stub does not fetch Keepa, eBay, Amazon, or retailer prices."
@@ -78,6 +89,7 @@ export function coachDeal(input: CoachInput = {}): CoachResult {
   }
 
   let verdict = normalizeVerdict(input.verdict);
+  if (usedAsking || !soldCompsConfirmed) verdict = "SKIP";
   if (!feesAreConfirmed && verdict === "BUY") verdict = "WATCH";
   if (compsAreUserEntered && !feesAreConfirmed && verdict === "BUY") verdict = "WATCH";
 
@@ -113,6 +125,8 @@ export function coachFromEnp(result: EnpSuccess, extras: Pick<CoachInput, "feesA
     verdict: result.verdict,
     downsideEnp: result.downsideEnp,
     compsAreUserEntered: true,
-    feesAreConfirmed: extras.feesAreConfirmed === true
+    feesAreConfirmed: extras.feesAreConfirmed === true,
+    soldCompsConfirmed: result.soldCompsConfirmed === true,
+    compKind: result.compKind
   });
 }

@@ -12,6 +12,7 @@ export const MARKETPLACES = [
 
 export type MarketplaceId = (typeof MARKETPLACES)[number]["id"];
 export type Retailer = (typeof RETAILERS)[number];
+export type CompKind = "sold" | "asking" | "active" | "cancelled" | "unknown";
 
 export type EnpInput = {
   title?: string;
@@ -29,6 +30,12 @@ export type EnpInput = {
   optimisticSell?: number | string | null;
   targetRoi?: number | string;
   minProfit?: number | string;
+  compKind?: string;
+  soldCompsConfirmed?: boolean;
+  rebate?: unknown;
+  storeCredit?: unknown;
+  msrp?: unknown;
+  promoDiscount?: unknown;
 };
 
 export type EnpFailure = {
@@ -36,6 +43,8 @@ export type EnpFailure = {
   errors: string[];
   trustLine: string;
   roiBasis: typeof ROI_BASIS;
+  askingPriceUsed: boolean;
+  soldCompsConfirmed: boolean;
 };
 
 export type EnpSuccess = {
@@ -72,6 +81,9 @@ export type EnpSuccess = {
   verdict: "BUY" | "MAYBE" | "PASS";
   trustLine: string;
   heroMetric: "enp";
+  compKind: "sold";
+  askingPriceUsed: false;
+  soldCompsConfirmed: true;
 };
 
 export type EnpResult = EnpFailure | EnpSuccess;
@@ -158,7 +170,43 @@ function verdictFor({
   return "PASS" as const;
 }
 
-export function evaluateEnp(input: EnpInput = {}): EnpResult {
+const NON_SOLD_COMPS = new Set(["asking", "active", "cancelled"]);
+
+export function normalizeCompKind(value?: string): CompKind {
+  const kind = String(value || "unknown").trim().toLowerCase();
+  if (kind === "sold" || kind === "asking" || kind === "active" || kind === "cancelled") return kind;
+  return "unknown";
+}
+
+export function evidenceErrors(input: EnpInput = {}): string[] {
+  const errors: string[] = [];
+  const kind = normalizeCompKind(input.compKind);
+  if (NON_SOLD_COMPS.has(kind)) {
+    errors.push("Asking, active, or cancelled listings are not sold comps and cannot set ENP.");
+  }
+  if (kind !== "sold") {
+    errors.push("compKind must be sold. ENP fails closed without completed-sale comps.");
+  }
+  if (input.soldCompsConfirmed !== true) {
+    errors.push("soldCompsConfirmed must be true. Unconfirmed comps cannot set ENP.");
+  }
+  if (input.rebate != null && input.rebate !== "") {
+    errors.push("Rebates cannot change acquisition cost or ENP.");
+  }
+  if (input.storeCredit != null && input.storeCredit !== "") {
+    errors.push("Store credit cannot change acquisition cost or ENP.");
+  }
+  if (input.msrp != null && input.msrp !== "") {
+    errors.push("MSRP cannot change acquisition cost, ENP, or ROI.");
+  }
+  if (input.promoDiscount != null && input.promoDiscount !== "") {
+    errors.push("Promotional discounts cannot silently reduce acquisition cost.");
+  }
+  return errors;
+}
+
+/** Calculator-identical math. Does not apply the sold-comp evidence gate. */
+export function evaluateEnpMath(input: EnpInput = {}): EnpResult {
   const errors: string[] = [];
   const marketplace = marketplaceById(input.marketplace);
   const buyPrice = num(input.buyPrice);
@@ -210,7 +258,14 @@ export function evaluateEnp(input: EnpInput = {}): EnpResult {
   if (!Number.isFinite(minProfit)) errors.push("Min profit must be a number.");
 
   if (errors.length) {
-    return { ok: false, errors, trustLine: TRUST_LINE, roiBasis: ROI_BASIS };
+    return {
+      ok: false,
+      errors,
+      trustLine: TRUST_LINE,
+      roiBasis: ROI_BASIS,
+      askingPriceUsed: NON_SOLD_COMPS.has(normalizeCompKind(input.compKind)),
+      soldCompsConfirmed: input.soldCompsConfirmed === true
+    };
   }
 
   const taxRate = (taxRatePct as number) / 100;
@@ -300,6 +355,24 @@ export function evaluateEnp(input: EnpInput = {}): EnpResult {
     upsideRoi: upside ? upside.roi : null,
     verdict,
     trustLine: TRUST_LINE,
-    heroMetric: "enp"
+    heroMetric: "enp",
+    compKind: "sold",
+    askingPriceUsed: false,
+    soldCompsConfirmed: true
   };
+}
+
+export function evaluateEnp(input: EnpInput = {}): EnpResult {
+  const blocked = evidenceErrors(input);
+  if (blocked.length) {
+    return {
+      ok: false,
+      errors: blocked,
+      trustLine: TRUST_LINE,
+      roiBasis: ROI_BASIS,
+      askingPriceUsed: NON_SOLD_COMPS.has(normalizeCompKind(input.compKind)),
+      soldCompsConfirmed: input.soldCompsConfirmed === true
+    };
+  }
+  return evaluateEnpMath(input);
 }

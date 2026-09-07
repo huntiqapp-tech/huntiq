@@ -5,19 +5,28 @@ import { evaluateEnp } from "./enp.ts";
 
 describe("coachDeal", () => {
   it("never claims a live pricing error and stays on user-entered data", () => {
-    const coach = coachDeal({ verdict: "BUY", enpPerUnit: 36.8, roi: 173, feesAreConfirmed: false });
+    const coach = coachDeal({
+      verdict: "BUY",
+      enpPerUnit: 36.8,
+      roi: 173,
+      feesAreConfirmed: false,
+      soldCompsConfirmed: true,
+      compKind: "sold"
+    });
     assert.equal(coach.livePriceErrorClaimed, false);
     assert.equal(coach.dataState, "user-entered-stub");
     assert.equal(coach.verdict, "WATCH");
     assert(coach.cautions.some((line) => /user-entered/i.test(line)));
   });
 
-  it("can keep BUY only when fees are confirmed", () => {
+  it("can keep BUY only when fees and sold comps are confirmed", () => {
     const enp = evaluateEnp({
       marketplace: "amazon-fba",
       buyPrice: 20,
       sellPrice: 80,
-      fbaOrShipOut: 10
+      fbaOrShipOut: 10,
+      compKind: "sold",
+      soldCompsConfirmed: true
     });
     assert.equal(enp.ok, true);
     if (!enp.ok) return;
@@ -26,8 +35,11 @@ describe("coachDeal", () => {
     assert.equal(coach.livePriceErrorClaimed, false);
   });
 
-  it("maps PASS to SKIP", () => {
-    const coach = coachDeal({ verdict: "PASS", enpPerUnit: -4, roi: 5 });
-    assert.equal(coach.verdict, "SKIP");
+  it("maps PASS and asking prices to SKIP", () => {
+    const pass = coachDeal({ verdict: "PASS", enpPerUnit: -4, roi: 5, soldCompsConfirmed: true, compKind: "sold" });
+    assert.equal(pass.verdict, "SKIP");
+    const asking = coachDeal({ verdict: "BUY", enpPerUnit: 36.8, roi: 173, soldCompsConfirmed: true, compKind: "asking" });
+    assert.equal(asking.verdict, "SKIP");
+    assert.equal(asking.livePriceErrorClaimed, false);
   });
 });
