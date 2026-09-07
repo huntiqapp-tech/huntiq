@@ -1,4 +1,5 @@
 const assert=require('assert');const Q=require('../lib/quality');
+const {execFileSync}=require('child_process');
 const now=Date.parse('2026-08-30T08:00:00Z');
 const freshRetail=Q.evidenceQuality({source:'retailer-page',observedAt:'2026-08-30T07:30:00Z',verified:true,now});
 const oldCommunity=Q.evidenceQuality({source:'community',observedAt:'2026-08-25T08:00:00Z',verified:false,now});
@@ -7,6 +8,8 @@ assert(oldCommunity.score<0.05,'old community evidence should be heavily discoun
 assert(Q.freshnessWeight('2026-08-20T08:00:00Z',{now,maxAgeHours:168})===0,'evidence beyond max age should expire');
 const combined=Q.combineEvidence([{source:'retailer-page',observedAt:'2026-08-30T07:30:00Z',verified:true,now},{source:'community',observedAt:'2026-08-30T07:45:00Z',verified:true,now}]);
 assert(combined.score>0.75&&combined.count===2,'multiple fresh signals should combine into strong evidence');
-// The full npm test path must exercise the exact attempt-ledger implementation used by the bounded repair workflow.
+// Full npm test must exercise the exact enforcement modules used by autonomous workflows.
 require('./autofix-attempt-ledger.test.js');
+require('./scan-added-secrets.test.js');
+execFileSync('python3',['scripts/claude-worktree-agent.py','--self-check'],{stdio:'inherit'});
 console.log('quality tests passed');
