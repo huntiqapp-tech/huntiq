@@ -145,6 +145,17 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - name: Require explicit Anthropic workspace configuration
+        env:
+          ANTHROPIC_WORKSPACE_ID: ${{ vars.ANTHROPIC_WORKSPACE_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ -n "${ANTHROPIC_WORKSPACE_ID:-}" ]] || {
+            echo '::error::ANTHROPIC_WORKSPACE_ID must be configured; refusing a source-code fallback.'
+            exit 1
+          }
+
       - name: Implement task with Claude in a non-publishing job
         uses: anthropics/claude-code-action@9c5ddab2e6d17b83ea679153b31f1d5f023cf636
         with:
@@ -157,23 +168,15 @@ jobs:
           anthropic_federation_rule_id: ${{ vars.ANTHROPIC_FEDERATION_RULE_ID }}
           anthropic_organization_id: ${{ vars.ANTHROPIC_ORGANIZATION_ID }}
           anthropic_service_account_id: ${{ vars.ANTHROPIC_SERVICE_ACCOUNT_ID }}
-          anthropic_workspace_id: ${{ vars.ANTHROPIC_WORKSPACE_ID || 'wrkspc_01Tu68TBrrtvigcjczbG3c8J' }}
+          anthropic_workspace_id: ${{ vars.ANTHROPIC_WORKSPACE_ID }}
           claude_args: "--max-turns 25 --allowedTools 'Edit,MultiEdit,Write,Read,Glob,Grep,LS'"
 
       - name: Enforce trusted autonomy and immutable task boundary
         shell: bash
         run: |
           set -euo pipefail
-          protected=(
-            .github/workflows/
-            scripts/autofix-attempt-ledger.js
-            tests/autofix-attempt-ledger.test.js
-            tests/customer-pwa-authority-gate.test.js
-            tests/resale-integrity.test.js
-            tests/history-identity.test.js
-            tests/acquisition-cost.test.js
-            tests/opportunity-ranking.test.js
-          )
+          mapfile -t protected < <(git show origin/main:.github/huntiq-autonomy-protected-paths.txt | sed -e '/^[[:space:]]*#/d' -e '/^[[:space:]]*$/d')
+          [[ ${#protected[@]} -gt 0 ]] || { echo '::error::Trusted protected-path list is empty.'; exit 1; }
           ! git diff --name-only origin/main...HEAD -- "${protected[@]}" | grep -q . || { echo '::error::Authorized branch already contains a protected trust/invariant change.'; exit 1; }
           ! git status --porcelain -- "${protected[@]}" .huntiq/tasks/current.md | grep -q . || { echo '::error::Autonomous implementation modified a protected trust/invariant/task file.'; exit 1; }
 
@@ -182,6 +185,7 @@ jobs:
         run: |
           set -euo pipefail
           required=(
+            tests/autonomy-trust-pins.test.js
             tests/customer-pwa-authority-gate.test.js
             tests/resale-integrity.test.js
             tests/history-identity.test.js
@@ -243,7 +247,9 @@ jobs:
         run: |
           set -euo pipefail
           git add -A
-          ! git diff --cached --name-only -- .github/workflows/ scripts/autofix-attempt-ledger.js tests/autofix-attempt-ledger.test.js tests/customer-pwa-authority-gate.test.js tests/resale-integrity.test.js tests/history-identity.test.js tests/acquisition-cost.test.js tests/opportunity-ranking.test.js .huntiq/tasks/current.md | grep -q . || {
+          mapfile -t protected < <(git show origin/main:.github/huntiq-autonomy-protected-paths.txt | sed -e '/^[[:space:]]*#/d' -e '/^[[:space:]]*$/d')
+          [[ ${#protected[@]} -gt 0 ]] || exit 1
+          ! git diff --cached --name-only -- "${protected[@]}" .huntiq/tasks/current.md | grep -q . || {
             echo '::error::Validated patch contains a protected file.'
             exit 1
           }
@@ -354,7 +360,9 @@ jobs:
           git apply --index "$patch"
           sed -i 's/^status: pending$/status: implemented/' .huntiq/tasks/current.md
           git add .huntiq/tasks/current.md
-          ! git diff --cached --name-only -- .github/workflows/ scripts/autofix-attempt-ledger.js tests/autofix-attempt-ledger.test.js tests/customer-pwa-authority-gate.test.js tests/resale-integrity.test.js tests/history-identity.test.js tests/acquisition-cost.test.js tests/opportunity-ranking.test.js | grep -q . || {
+          mapfile -t protected < <(git show origin/main:.github/huntiq-autonomy-protected-paths.txt | sed -e '/^[[:space:]]*#/d' -e '/^[[:space:]]*$/d')
+          [[ ${#protected[@]} -gt 0 ]] || exit 1
+          ! git diff --cached --name-only -- "${protected[@]}" | grep -q . || {
             echo '::error::Publisher received a protected trust/invariant file.'
             exit 1
           }
