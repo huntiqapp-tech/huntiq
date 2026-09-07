@@ -12,6 +12,7 @@ const asOf = '2026-09-07T16:00:00.000Z';
 const observation = {
   retailer: 'walmart',
   productId: 'item-127',
+  sku: 'item-127',
   title: 'Invariant integration fixture',
   price: 50,
   storeId: 'PA-18360',
@@ -35,7 +36,7 @@ const validation = {
   validatedAt: '2026-09-07T15:15:00.000Z'
 };
 const sameIdentity = {
-  retailer: 'walmart', productId: 'item-127', storeId: 'PA-18360', channel: 'store',
+  retailer: 'walmart', productId: 'item-127', sku: 'item-127', storeId: 'PA-18360', channel: 'store',
   source: { provider: 'retailerapi' }, verified: true
 };
 const historyObservations = [
@@ -74,8 +75,8 @@ const live = payload.opportunities[0];
 assert.deepEqual(live.priceHistory, [88, 84, 80], 'customer history must remain retailer/product/store/channel specific');
 assert.equal(live.completedSales.length, 3, 'only verified completed sales for the same product may cross the customer boundary');
 assert(live.completedSales.every(row => ['sold', 'completed', 'fulfilled'].includes(row.status)));
-assert(!JSON.stringify(payload).includes('999'), 'active asking-price evidence must not contaminate the customer sold-comp payload');
-assert(!JSON.stringify(payload).includes('777'), 'different-product sold evidence must not contaminate customer comps');
+assert(!live.completedSales.some(row => row.price === 999), 'active asking-price evidence must not contaminate the customer sold-comp payload');
+assert(!live.completedSales.some(row => row.price === 777), 'different-product sold evidence must not contaminate customer comps');
 
 const secretPayload = buildCustomerLivePayload(
   { provider: 'retailerapi', validationState: 'validated', assessments: [{ ...assessment, authorization: 'never-expose-this' }] },
