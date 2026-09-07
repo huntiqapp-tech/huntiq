@@ -60,6 +60,7 @@ assert(app.includes("setAttribute('aria-pressed'") && app.includes("setAttribute
 assert(app.includes('comp-panel-${d.id}') && app.includes('announce('), 'unique details IDs and live announcements');
 assert(app.includes('sourceSummaryText') && app.includes('[data-source-grid]'), 'source counts render from one array');
 
+assert(css.includes('.skip-link') && css.includes(':focus-visible') && css.includes('prefers-reduced-motion'), 'a11y CSS primitives present');
 assert(css.includes('.status.evaluating') && css.includes('.status.restricted') && css.includes('.status.connected'), 'status styles cover Connected/Evaluating/Restricted');
 assert(!css.includes('.status.pending') && !css.includes('.status.ready') && !css.includes('.status.research'), 'legacy source-status CSS classes are gone');
 assert(css.includes('overflow-x:clip') && !css.includes('100vw'), 'overflow guarded without 100vw');
@@ -78,6 +79,8 @@ assert(manifest.includes('"start_url":"./"') && manifest.includes('"display":"st
 assert(html.includes('id="installBtn"'), 'install control preserved');
 
 assert(app.includes('renderSampleDeal') && app.includes("d.id==='hd-m18'"), 'hero/curated sample cards hydrate from the Home Depot demo deal');
+assert(html.includes('data-sample="price"') && html.includes('data-sample="medians"') && html.includes('data-sample="location"'), 'sample cards expose hydration hooks instead of a second number list');
+assert(!html.includes('$129') && !html.includes('$599') && !html.includes('$489'), 'static HTML must not duplicate demoDeals price/comp numbers');
 assert(html.includes('Asking prices and active listings are not completed-sale evidence'), 'marketplace pills are qualified as not equal sold-comp feeds');
 assert(app.includes("soldEvidence:'asking-only'") && app.includes('not sold-comp eligible'), 'eBay Evaluating is structurally asking-only, not sold-comp eligible');
 assert(html.includes('asking only') && html.includes('sold feed not connected'), 'each marketplace pill has a per-source sold-evidence qualifier');
@@ -89,14 +92,9 @@ function demoField(key) {
   assert(match, `demo deal field ${key} present`);
   return Number(match[1]);
 }
-const demoTitle = demoBlock[0].match(/title:'([^']+)'/)[1];
-const demoRetailer = demoBlock[0].match(/retailer:'([^']+)'/)[1];
-const demoStore = demoBlock[0].match(/storeId:'([^']+)'/)[1].replace(/-demo$/, '');
-const usd = n => `$${n}`;
-assert(html.includes(demoTitle) && html.includes(demoRetailer), 'sample markup uses the Home Depot demo title and retailer');
-assert(html.includes(usd(demoField('price'))) && html.includes(usd(demoField('referencePrice'))), 'sample markup matches demo price and reference');
-assert(html.includes(usd(demoField('d30'))) && html.includes(usd(demoField('d60'))) && html.includes(usd(demoField('d90'))), 'sample markup matches demo 30/60/90 sold medians');
-assert(html.includes(String(demoField('soldCount'))) && html.includes(demoStore), 'sample markup matches demo sold count and location key');
+assert(app.includes('money(d.price)') && app.includes('money(d.referencePrice)') && app.includes('money(d.comps.d30)'), 'renderSampleDeal writes price, reference, and sold medians from demoDeals');
+assert(demoField('price') === 129 && demoField('referencePrice') === 599 && demoField('d30') === 489 && demoField('soldCount') === 38, 'hd-m18 demo fields remain the sample-card source of truth');
+assert(html.includes('18360') && /store\/ZIP|store\/ZIP location key|sample store\/ZIP/i.test(html), 'ZIP provenance explained');
 
 const requiredDemoHooks = [
   "d.observedAt||d.timestamp||new Date().toISOString()",
