@@ -260,7 +260,29 @@ jobs:
           main_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')"
           main_review_blob="$(gh api "repos/$GITHUB_REPOSITORY/contents/.github/workflows/agent-review.yml?ref=$main_sha" --jq '.sha')"
           main_reviewer_blob="$(gh api "repos/$GITHUB_REPOSITORY/contents/scripts/claude-pr-review.py?ref=$main_sha" --jq '.sha')"
-          gh api --paginate "repos/$GITHUB_REPOSITORY/actions/workflows/agent-review.yml/runs?event=workflow_run&status=completed&per_page=100" | jq -s '[.[].workflow_runs[]]' > "$RUNNER_TEMP/review-runs.json"
+
+          # Snapshot the server-reported workflow-run cardinality, then require the paginated
+          # enumeration to match it exactly. Any partial/raced/duplicated response fails closed
+          # before an autonomous write can be authorized.
+          runs_endpoint="repos/$GITHUB_REPOSITORY/actions/workflows/agent-review.yml/runs?event=workflow_run&status=completed&per_page=100"
+          first_page="$(gh api "$runs_endpoint")"
+          expected_total="$(jq -r '.total_count' <<<"$first_page")"
+          [[ "$expected_total" =~ ^[0-9]+$ ]] || {
+            echo '::error::Trusted review-run total_count is unavailable.'
+            exit 1
+          }
+          gh api --paginate "$runs_endpoint" | jq -s '[.[].workflow_runs[]]' > "$RUNNER_TEMP/review-runs.json"
+          actual_total="$(jq 'length' "$RUNNER_TEMP/review-runs.json")"
+          unique_total="$(jq '[.[].id] | unique | length' "$RUNNER_TEMP/review-runs.json")"
+          [[ "$actual_total" == "$expected_total" && "$unique_total" == "$actual_total" ]] || {
+            echo "::error::Trusted review-run ledger enumeration is incomplete or raced (expected=$expected_total actual=$actual_total unique=$unique_total)."
+            exit 1
+          }
+          current_run_matches="$(jq --argjson run "$CURRENT_REVIEW_RUN" '[.[] | select(.id == $run)] | length' "$RUNNER_TEMP/review-runs.json")"
+          [[ "$current_run_matches" == '1' ]] || {
+            echo '::error::Current trusted BLOCK run is not uniquely present in the complete server ledger.'
+            exit 1
+          }
 
           declare -A blocked_sha=()
           current_seen=false
@@ -278,9 +300,15 @@ jobs:
             }
 
             artifacts_json="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id/artifacts?per_page=100")"
-            packet_name="$(jq -r '[.artifacts[] | select((.name | startswith("huntiq-review-packet-")) and (.expired == false))][0].name // ""' <<<"$artifacts_json")"
-            result_name="$(jq -r '[.artifacts[] | select((.name | startswith("huntiq-review-result-")) and (.expired == false))][0].name // ""' <<<"$artifacts_json")"
-            [[ -n "$packet_name" && -n "$result_name" ]] || continue
+            artifact_total="$(jq -r '.total_count' <<<"$artifacts_json")"
+            packet_count="$(jq '[.artifacts[] | select((.name | startswith("huntiq-review-packet-")) and (.expired == false))] | length' <<<"$artifacts_json")"
+            result_count="$(jq '[.artifacts[] | select((.name | startswith("huntiq-review-result-")) and (.expired == false))] | length' <<<"$artifacts_json")"
+            [[ "$artifact_total" == '2' && "$packet_count" == '1' && "$result_count" == '1' ]] || {
+              echo "::error::Successful trusted review run $run_id has incomplete, expired, or ambiguous artifacts; refusing to under-count repairs."
+              exit 1
+            }
+            packet_name="$(jq -r '.artifacts[] | select((.name | startswith("huntiq-review-packet-")) and (.expired == false)) | .name' <<<"$artifacts_json")"
+            result_name="$(jq -r '.artifacts[] | select((.name | startswith("huntiq-review-result-")) and (.expired == false)) | .name' <<<"$artifacts_json")"
             run_dir="$RUNNER_TEMP/review-ledger-$run_id"
             mkdir -p "$run_dir/packet" "$run_dir/result"
             gh run download "$run_id" --repo "$GITHUB_REPOSITORY" --name "$packet_name" --dir "$run_dir/packet" >/dev/null
