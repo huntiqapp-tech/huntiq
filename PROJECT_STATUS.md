@@ -6,6 +6,7 @@ Last established from repository and product handoff: 2026-09-03. This is the li
 - Package: **0.9.59**
 - Public PWA preview is functional but still intentionally uses demonstration opportunity data until rights-cleared live integrations are connected.
 - Offline cache: **`huntiq-public-v72`**.
+- Server-only Home Depot HTML scraper is **experimental / shadow-only**. It is not a customer feed and cannot enable alerts.
 
 ## DONE / PRESENT
 - Mobile-first installable PWA with offline service worker and browser-persistent watchlist.
@@ -36,6 +37,7 @@ Last established from repository and product handoff: 2026-09-03. This is the li
 - **v0.9.57 validated customer payload gate:** `lib/customer-live-payload.js` converts only explicitly validated, customer-display-authorized RetailerAPI assessments into a secret-free PWA payload. It preserves provider provenance and store/ZIP/online identity, rejects unauthorized or secret-bearing rows, classifies freshness, and leaves alerts off by default.
 - **v0.9.58 retailer crosscheck gate:** RetailerAPI observations require a fresh, positive-price, product/channel/location-matched retailer crosscheck before permanent history promotion. The higher observed price is retained for conservative acquisition economics, and failed or future-dated crosschecks cannot increase anomaly confidence or enable urgent alerts.
 - **v0.9.59 explainable Deal Coach:** `lib/deal-coach.js` converts existing price-history coverage, anomaly confidence, completed-sale depth, resale confidence, liquidity, base/downside/risk-adjusted economics, safe max-buy and alert state into a deterministic BUY/WATCH/SKIP explanation. `lib/deal-coach-runtime.js` renders the explanation on PWA opportunity cards and forces demonstration rows to WATCH so demo evidence cannot look like a live recommendation.
+- **Experimental Home Depot HTML scraper (shadow only):** `lib/retailer-scraper.js` remains the shared HTTPS/allowlist/JSON-LD/OG fetch foundation. `lib/scrapers/home-depot.js` is the first retailer adapter and is separate from Bright Data (`lib/brightdata-home-depot.js`). `lib/scrape-runner.js` batches validated targets with rate limits, usage budget, dedupe and partial failure. Observations use `provider: huntiq-scraper`, `rightsClass: internal-only`, `validationState: shadow`, and `alertsEnabled: false`. `scripts/home-depot-scraper-smoke.js` prints a sanitized summary only and is not part of `npm test`.
 
 ## DATABASE / AUDIT LAYERS
 - `db/013_price_history_features.sql` — store-isolated sequential price features.
@@ -69,6 +71,7 @@ Last established from repository and product handoff: 2026-09-03. This is the li
 - **v0.9.57 adds `tests/customer-live-payload.test.js` covering validation evidence, display rights, secret rejection, channel/location preservation, freshness downgrades and default alert suppression.**
 - **v0.9.58 adds `tests/retailer-crosscheck.test.js` and history-promotion integration coverage for price, identity, channel/location, freshness, future-time and required-crosscheck failures.**
 - **v0.9.59 adds `tests/deal-coach.test.js` covering strong-buy evidence, thin-history/resale cautions, safe-max-buy violations, alert explanation and mandatory demo WATCH behavior.**
+- Experimental scraper fixture tests (`tests/retailer-scraper.test.js`, `tests/home-depot-scraper.test.js`, `tests/scrape-runner.test.js`) cover URL allow/deny, JSON-LD/OG extraction, missing/malformed price, ZIP/store isolation, HTTP errors, timeouts, oversized responses, duplicates, secret redaction and normalized shadow output. `npm test` injects fixtures only and must not hit live retailers. Bright Data Home Depot tests remain unchanged.
 
 ## RETAILER / MARKETPLACE RESEARCH COMPLETED
 - eBay Browse API: active asking/product evidence only; not completed-sale history. Marketplace Insights remains restricted.
@@ -96,7 +99,16 @@ Last established from repository and product handoff: 2026-09-03. This is the li
 - Raw completed-sale evidence remains immutable even when evaluator-level filtering/downweighting excludes it.
 - Customer-facing recommendation explanations must be derived from persisted evaluator evidence and must not upgrade demonstration, stale or validation-only data into a live recommendation.
 
+## EXPERIMENTAL SCRAPER — KNOWN LIMITS
+- Static public HTML only (JSON-LD / Open Graph). JavaScript-rendered or cookie-gated store prices are not captured.
+- No CAPTCHA bypass, auth bypass, cookie theft or Playwright browser automation.
+- ZIP/store identity is recorded from the requested scrape context; the adapter does not impersonate a store session.
+- Scrape output is internal-only experimental shadow evidence for the price-error / penny-ticket hunt. It must not enter customer display, permanent history or alerts by itself.
+- Bright Data Home Depot remains a separate provider path (`bright-data` / dataset `gd_lmusivh019i7g97q2n`) and must stay intact.
+- Live retailer pages are opt-in via `HOME_DEPOT_SMOKE_URL` and `npm run smoke:home-depot-scraper`. Never commit secrets or raw HTML dumps.
+
 ## NEXT — HIGH PRIORITY
+- After fixture tests stay green, optionally run `npm run smoke:home-depot-scraper` from a trusted server with `HOME_DEPOT_SMOKE_URL` and compare a sanitized observation against Bright Data / RetailerAPI. Keep the scrape path experimental-shadow; do not enable customer alerts or promote scrape-only rows to permanent history.
 - Make the existing RetailerAPI key available to the trusted server runtime as `RETAILERAPI_KEY` and run `npm run smoke:retailerapi`; never place the key in the public repository or browser bundle.
 - Manually validate a representative RetailerAPI sample against source retailer pages before promoting shadow observations or enabling alerts.
 - Run authenticated RetailerAPI lookup and manual source-page validation, then change only approved observations from `shadow-live` to validated history; keep alerts disabled until that evidence is recorded.
