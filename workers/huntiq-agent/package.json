@@ -1,0 +1,28 @@
+{
+  "name": "huntiq-agent",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Cloudflare Workers Think agent stub for future gethuntiq.com ENP / Deal Coach use.",
+  "scripts": {
+    "dev": "wrangler dev",
+    "types": "wrangler types",
+    "typecheck": "wrangler types && tsc --noEmit",
+    "check": "npm run typecheck",
+    "test": "node --experimental-strip-types --test src/enp.test.ts src/coach.test.ts",
+    "dry-run": "wrangler deploy --dry-run"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@cloudflare/think": "^0.17.0",
+    "agents": "^0.22.0",
+    "ai": "^7.0.93",
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "wrangler": "^4.129.1"
+  }
+}

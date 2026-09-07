@@ -1,0 +1,305 @@
+export const TRUST_LINE =
+  "Comps are user-entered, not live Keepa or Home Depot data.";
+export const ROI_BASIS = "acquisition";
+const MAYBE_TOLERANCE = 0.1;
+
+export const RETAILERS = ["Home Depot", "Lowe's", "Walmart", "Best Buy", "Other"] as const;
+export const MARKETPLACES = [
+  { id: "amazon-fba", label: "Amazon FBA", referralPct: 15, outboundLabel: "FBA fee" },
+  { id: "amazon-fbm", label: "Amazon FBM", referralPct: 15, outboundLabel: "Shipping out" },
+  { id: "ebay", label: "eBay", referralPct: 13, outboundLabel: "Shipping out" }
+] as const;
+
+export type MarketplaceId = (typeof MARKETPLACES)[number]["id"];
+export type Retailer = (typeof RETAILERS)[number];
+
+export type EnpInput = {
+  title?: string;
+  retailer?: string;
+  marketplace?: string;
+  buyPrice?: number | string;
+  sellPrice?: number | string;
+  fbaOrShipOut?: number | string;
+  taxRatePct?: number | string;
+  acquireShip?: number | string;
+  units?: number | string;
+  referralPct?: number | string;
+  otherFees?: number | string;
+  conservativeSell?: number | string | null;
+  optimisticSell?: number | string | null;
+  targetRoi?: number | string;
+  minProfit?: number | string;
+};
+
+export type EnpFailure = {
+  ok: false;
+  errors: string[];
+  trustLine: string;
+  roiBasis: typeof ROI_BASIS;
+};
+
+export type EnpSuccess = {
+  ok: true;
+  errors: [];
+  title: string | null;
+  retailer: Retailer;
+  marketplace: MarketplaceId;
+  marketplaceLabel: string;
+  units: number;
+  buyPrice: number;
+  taxRatePct: number;
+  acquireShip: number;
+  acquisition: number;
+  acquisitionTotal: number;
+  sellPrice: number;
+  referralPct: number;
+  fbaOrShipOut: number;
+  otherFees: number;
+  sellFees: number;
+  enpPerUnit: number;
+  enpTotal: number;
+  roi: number;
+  roiBasis: typeof ROI_BASIS;
+  targetRoi: number;
+  minProfit: number;
+  maxBuyPrice: number;
+  headroom: number;
+  breakEvenSell: number | null;
+  downsideEnp: number | null;
+  downsideRoi: number | null;
+  upsideEnp: number | null;
+  upsideRoi: number | null;
+  verdict: "BUY" | "MAYBE" | "PASS";
+  trustLine: string;
+  heroMetric: "enp";
+};
+
+export type EnpResult = EnpFailure | EnpSuccess;
+
+const money = (n: number) => +(Number(n) || 0).toFixed(2);
+const pct = (n: number) => +(Number(n) || 0).toFixed(2);
+
+export function marketplaceById(id?: string) {
+  return MARKETPLACES.find((item) => item.id === id) || MARKETPLACES[0];
+}
+
+export function defaultReferralPct(marketplaceId?: string) {
+  return marketplaceById(marketplaceId).referralPct;
+}
+
+function num(value: unknown, fallback: number | null = null) {
+  if (value === "" || value == null) return fallback;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : NaN;
+}
+
+function scenario(
+  sellPrice: number,
+  referralRate: number,
+  fbaOrShipOut: number,
+  otherFees: number,
+  acquisition: number
+) {
+  const sell = Math.max(0, Number(sellPrice) || 0);
+  const sellFees = sell * referralRate + fbaOrShipOut + otherFees;
+  const profit = sell - sellFees - acquisition;
+  const roi = acquisition > 0 ? (profit / acquisition) * 100 : 0;
+  return {
+    sellPrice: money(sell),
+    sellFees: money(sellFees),
+    referralFee: money(sell * referralRate),
+    profit: money(profit),
+    roi: pct(roi)
+  };
+}
+
+function maxBuyPrice({
+  netProceeds,
+  acquireShip,
+  taxRate,
+  targetRoiRate,
+  minProfit
+}: {
+  netProceeds: number;
+  acquireShip: number;
+  taxRate: number;
+  targetRoiRate: number;
+  minProfit: number;
+}) {
+  const profitCap = (netProceeds - minProfit - acquireShip) / (1 + taxRate);
+  const roiCap = (netProceeds / (1 + targetRoiRate) - acquireShip) / (1 + taxRate);
+  return money(Math.max(0, Math.min(profitCap, roiCap)));
+}
+
+function verdictFor({
+  headroom,
+  profit,
+  roi,
+  buyPrice,
+  maxBuy,
+  minProfit,
+  targetRoi
+}: {
+  headroom: number;
+  profit: number;
+  roi: number;
+  buyPrice: number;
+  maxBuy: number;
+  minProfit: number;
+  targetRoi: number;
+}) {
+  const hitsProfit = profit + 1e-9 >= minProfit;
+  const hitsRoi = roi + 1e-9 >= targetRoi;
+  if (headroom + 1e-9 >= 0 && hitsProfit && hitsRoi) return "BUY" as const;
+  const closeProfit = profit + 1e-9 >= minProfit * (1 - MAYBE_TOLERANCE);
+  const closeRoi = roi + 1e-9 >= targetRoi * (1 - MAYBE_TOLERANCE);
+  const closeBuy = maxBuy > 0 ? buyPrice <= maxBuy * (1 + MAYBE_TOLERANCE) : false;
+  if (closeProfit && closeRoi && closeBuy && profit > 0) return "MAYBE" as const;
+  return "PASS" as const;
+}
+
+export function evaluateEnp(input: EnpInput = {}): EnpResult {
+  const errors: string[] = [];
+  const marketplace = marketplaceById(input.marketplace);
+  const buyPrice = num(input.buyPrice);
+  const sellPrice = num(input.sellPrice);
+  const fbaOrShipOut = num(input.fbaOrShipOut);
+  const taxRatePct = num(input.taxRatePct, 6);
+  const acquireShip = num(input.acquireShip, 0);
+  const units = num(input.units, 1);
+  const referralPct = num(input.referralPct, marketplace.referralPct);
+  const otherFees = num(input.otherFees, 0);
+  const conservativeSell = num(input.conservativeSell, null);
+  const optimisticSell = num(input.optimisticSell, null);
+  const targetRoi = num(input.targetRoi, 30);
+  const minProfit = num(input.minProfit, 15);
+  const title = String(input.title || "").trim();
+  const retailer = RETAILERS.includes(input.retailer as Retailer)
+    ? (input.retailer as Retailer)
+    : "Other";
+
+  if (!(buyPrice != null && buyPrice > 0)) errors.push("Buy price is required.");
+  if (!(sellPrice != null && sellPrice > 0)) errors.push("Expected sell price is required.");
+  if (!Number.isFinite(fbaOrShipOut) || (fbaOrShipOut as number) < 0) {
+    errors.push("FBA fee or shipping out is required.");
+  }
+  if (!Number.isFinite(taxRatePct) || (taxRatePct as number) < 0) {
+    errors.push("Tax rate must be zero or greater.");
+  }
+  if (!Number.isFinite(acquireShip) || (acquireShip as number) < 0) {
+    errors.push("Shipping/gas to acquire must be zero or greater.");
+  }
+  if (!Number.isFinite(units) || (units as number) < 1 || !Number.isInteger(Number(units))) {
+    errors.push("Units must be a whole number of 1 or more.");
+  }
+  if (!Number.isFinite(referralPct) || (referralPct as number) < 0 || (referralPct as number) >= 100) {
+    errors.push("Referral fee must be between 0 and 100.");
+  }
+  if (!Number.isFinite(otherFees) || (otherFees as number) < 0) {
+    errors.push("Other fees must be zero or greater.");
+  }
+  if (conservativeSell != null && !(conservativeSell >= 0)) {
+    errors.push("Conservative sell low must be zero or greater.");
+  }
+  if (optimisticSell != null && !(optimisticSell >= 0)) {
+    errors.push("Optimistic sell high must be zero or greater.");
+  }
+  if (!Number.isFinite(targetRoi) || (targetRoi as number) < 0) {
+    errors.push("Target ROI must be zero or greater.");
+  }
+  if (!Number.isFinite(minProfit)) errors.push("Min profit must be a number.");
+
+  if (errors.length) {
+    return { ok: false, errors, trustLine: TRUST_LINE, roiBasis: ROI_BASIS };
+  }
+
+  const taxRate = (taxRatePct as number) / 100;
+  const referralRate = (referralPct as number) / 100;
+  const acquisition = (buyPrice as number) * (1 + taxRate) + (acquireShip as number);
+  const expected = scenario(
+    sellPrice as number,
+    referralRate,
+    fbaOrShipOut as number,
+    otherFees as number,
+    acquisition
+  );
+  const netProceeds =
+    (sellPrice as number) * (1 - referralRate) - (fbaOrShipOut as number) - (otherFees as number);
+  const maxBuy = maxBuyPrice({
+    netProceeds,
+    acquireShip: acquireShip as number,
+    taxRate,
+    targetRoiRate: (targetRoi as number) / 100,
+    minProfit: minProfit as number
+  });
+  const headroom = money(maxBuy - (buyPrice as number));
+  const breakEvenSell =
+    referralRate < 1
+      ? money((acquisition + (fbaOrShipOut as number) + (otherFees as number)) / (1 - referralRate))
+      : null;
+  const downside =
+    conservativeSell != null
+      ? scenario(
+          conservativeSell,
+          referralRate,
+          fbaOrShipOut as number,
+          otherFees as number,
+          acquisition
+        )
+      : null;
+  const upside =
+    optimisticSell != null
+      ? scenario(
+          optimisticSell,
+          referralRate,
+          fbaOrShipOut as number,
+          otherFees as number,
+          acquisition
+        )
+      : null;
+  const verdict = verdictFor({
+    headroom,
+    profit: expected.profit,
+    roi: expected.roi,
+    buyPrice: buyPrice as number,
+    maxBuy,
+    minProfit: minProfit as number,
+    targetRoi: targetRoi as number
+  });
+
+  return {
+    ok: true,
+    errors: [],
+    title: title || null,
+    retailer,
+    marketplace: marketplace.id,
+    marketplaceLabel: marketplace.label,
+    units: Number(units),
+    buyPrice: money(buyPrice as number),
+    taxRatePct: pct(taxRatePct as number),
+    acquireShip: money(acquireShip as number),
+    acquisition: money(acquisition),
+    acquisitionTotal: money(acquisition * Number(units)),
+    sellPrice: expected.sellPrice,
+    referralPct: pct(referralPct as number),
+    fbaOrShipOut: money(fbaOrShipOut as number),
+    otherFees: money(otherFees as number),
+    sellFees: expected.sellFees,
+    enpPerUnit: expected.profit,
+    enpTotal: money(expected.profit * Number(units)),
+    roi: expected.roi,
+    roiBasis: ROI_BASIS,
+    targetRoi: pct(targetRoi as number),
+    minProfit: money(minProfit as number),
+    maxBuyPrice: maxBuy,
+    headroom,
+    breakEvenSell,
+    downsideEnp: downside ? downside.profit : null,
+    downsideRoi: downside ? downside.roi : null,
+    upsideEnp: upside ? upside.profit : null,
+    upsideRoi: upside ? upside.roi : null,
+    verdict,
+    trustLine: TRUST_LINE,
+    heroMetric: "enp"
+  };
+}

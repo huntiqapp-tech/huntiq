@@ -1,6 +1,6 @@
 # HUNTIQ — Project Status
 
-Last established from repository and product handoff: 2026-09-04. This is the living handoff and must be updated after meaningful work.
+Last established from repository and product handoff: 2026-09-07. This is the living handoff and must be updated after meaningful work.
 
 ## CURRENT VERSION
 - Package: **0.9.110**
@@ -8,6 +8,7 @@ Last established from repository and product handoff: 2026-09-04. This is the li
 - Offline cache: **`huntiq-public-v110`**.
 
 ## DONE / PRESENT
+- **Cloudflare Workers Think stub (not deployed):** `workers/huntiq-agent/` is a self-contained Workers package for future gethuntiq.com use. `HuntiqAgent` extends `Think` from `@cloudflare/think` and owns each chat turn. It exposes a no-scrape ENP / Deal Coach stub (user-entered sold comps and confirmed fees only). Workers tracing is enabled at `head_sampling_rate = 1` with metadata-only content (`storeMessages` / `storeTools` are not set true). The public GitHub Pages PWA and `calculator.html` are unchanged. Do not `wrangler deploy` until a human attaches an account and, later, a custom domain.
 - **v0.9.110 no-scrape ENP Calculator MVP:** `calculator.html` is a phone-first public PWA page for user-pasted buy prices and Amazon/eBay comps. It returns ENP (hero metric, never MSRP % off), acquisition-basis ROI, max buy that still hits target ROI **and** min profit, headroom, break-even sell, optional downside ENP, and BUY/MAYBE/PASS. Last 20 runs persist in localStorage. Soft gate: 3 free calculations per local calendar day, then a `$9 unlock — coming soon` Gumroad stub (no Stripe). No Keepa, Bright Data, Oxylabs, RetailerAPI, or other live fetches. Demo opportunity cards are unchanged. Math lives in `lib/enp-calculator.js` with `tests/enp-calculator.test.js`. Existing `lib/decision.js` max-buy was not reused because it mixes acquire shipping with outbound/FBA fees.
 - Mobile-first installable PWA with offline service worker and browser-persistent watchlist.
 - Strict completed-sale resale aggregation in `lib/resale-history.js`; active/asking/cancelled rows cannot contaminate sold-history metrics.
@@ -133,3 +134,4 @@ Last established from repository and product handoff: 2026-09-04. This is the li
 - Connect a legitimate completed-sale provider before claiming live 30/60/90 sold history.
 - Persist production evaluator/history/promotion/resale/source/alert/Deal Coach/evidence-agreement snapshots once backend storage is connected.
 - Expand actual notification delivery after backend/account architecture is selected.
+- Cloudflare Worker `huntiq-agent` remains local-only. Deploy and attach `gethuntiq.com` (or a subdomain) only after a human owns a Cloudflare account and decides how that hostname should relate to the existing GitHub Pages PWA.
