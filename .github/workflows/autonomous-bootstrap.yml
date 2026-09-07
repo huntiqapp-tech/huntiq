@@ -16,7 +16,7 @@ jobs:
     outputs:
       authorized: ${{ steps.authorize.outputs.authorized }}
     steps:
-      - name: Authorize OWNER AI build issue using GitHub API state
+      - name: Authorize allowlisted OWNER AI build issue using GitHub API state
         id: authorize
         env:
           GH_TOKEN: ${{ github.token }}
@@ -24,14 +24,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          echo 'authorized=false' >> "$GITHUB_OUTPUT"
           issue_json="$(gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER")"
           association="$(jq -r '.author_association' <<<"$issue_json")"
+          author="$(jq -r '.user.login' <<<"$issue_json")"
           title="$(jq -r '.title' <<<"$issue_json")"
-          if [[ "$association" == 'OWNER' && "$title" == '[AI BUILD]'* ]]; then
-            echo 'authorized=true' >> "$GITHUB_OUTPUT"
-          else
-            echo 'authorized=false' >> "$GITHUB_OUTPUT"
-          fi
+          owners="$(gh api "repos/$GITHUB_REPOSITORY/contents/.github/huntiq-autonomous-owners.txt?ref=main" --jq '.content' | tr -d '\n' | base64 -d)"
+          [[ "$association" == 'OWNER' && "$title" == '[AI BUILD]'* ]] || exit 0
+          grep -Fxq "$author" <<<"$owners" || exit 0
+          echo 'authorized=true' >> "$GITHUB_OUTPUT"
 
   bootstrap:
     needs: authorize
@@ -58,14 +59,25 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          [[ -s .github/huntiq-autonomous-owners.txt && -s .github/huntiq-credential-patterns.txt ]] || exit 1
           issue_json="$(gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER")"
           association="$(jq -r '.author_association' <<<"$issue_json")"
+          issue_author="$(jq -r '.user.login' <<<"$issue_json")"
           issue_title="$(jq -r '.title' <<<"$issue_json")"
           issue_body="$(jq -r '.body // "No issue body provided."' <<<"$issue_json")"
           [[ "$association" == 'OWNER' && "$issue_title" == '[AI BUILD]'* ]] || {
             echo '::error::Issue authorization changed after the read-only preflight.'
             exit 1
           }
+          grep -Fxq "$issue_author" .github/huntiq-autonomous-owners.txt || {
+            echo '::error::Issue author is not on the PM-controlled autonomous OWNER allowlist.'
+            exit 1
+          }
+          printf '%s\n%s\n' "$issue_title" "$issue_body" > "$RUNNER_TEMP/issue-input.txt"
+          if grep -Eif .github/huntiq-credential-patterns.txt "$RUNNER_TEMP/issue-input.txt"; then
+            echo '::error::Credential-like material detected in autonomous issue input; refusing to commit it.'
+            exit 1
+          fi
 
           branch="ai/issue-${ISSUE_NUMBER}-${GITHUB_RUN_ID}"
           title_sha256="$(printf '%s' "$issue_title" | sha256sum | awk '{print $1}')"
@@ -78,6 +90,7 @@ jobs:
             echo "issue: ${ISSUE_NUMBER}"
             echo "bootstrap_run: ${GITHUB_RUN_ID}"
             echo "bootstrap_author_association: OWNER"
+            echo "bootstrap_author_login: ${issue_author}"
             echo "bootstrap_title_sha256: ${title_sha256}"
             echo "title: ${issue_title}"
             echo ""
@@ -94,7 +107,6 @@ jobs:
           git commit -m "chore: bootstrap autonomous task #${ISSUE_NUMBER}"
           git push origin "$branch"
           echo "branch=$branch" >> "$GITHUB_OUTPUT"
-          printf '%s' "$issue_title" > "$RUNNER_TEMP/issue-title.txt"
 
       - name: Open draft implementation PR
         id: pr
@@ -105,8 +117,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          issue_title="$(gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER" --jq '.title')"
-          [[ "$issue_title" == '[AI BUILD]'* ]] || exit 1
+          issue_json="$(gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER")"
+          issue_title="$(jq -r '.title' <<<"$issue_json")"
+          issue_author="$(jq -r '.user.login' <<<"$issue_json")"
+          [[ "$(jq -r '.author_association' <<<"$issue_json")" == 'OWNER' && "$issue_title" == '[AI BUILD]'* ]] || exit 1
+          grep -Fxq "$issue_author" .github/huntiq-autonomous-owners.txt || exit 1
           title="${issue_title#\[AI BUILD\] }"
           body="$(printf 'Autonomous implementation for #%s.\n\nThe PR must pass the explicit HUNTIQ invariant gate, the full test suite, and the Claude review gate. Auto-merge is disabled; PM approval remains the final gate.\n\nCloses #%s\n' "$ISSUE_NUMBER" "$ISSUE_NUMBER")"
           url="$(gh pr create --repo "$GITHUB_REPOSITORY" --base main --head "$BRANCH" --draft --title "AI: $title" --body "$body")"
