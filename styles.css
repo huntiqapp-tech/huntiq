@@ -376,13 +376,30 @@ img,svg,video{max-width:100%;height:auto}
   .hero{gap:20px}
   .trust-strip,.source-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+#how-it-works,#sample-deal,#data-status,#faq,#opportunities,#sources,#risk-controls,#top,#main{
+  scroll-margin-top:5.5rem;
+}
+.top-nav a{flex:0 0 auto}
 @media(max-width:768px){
   .hero,.curated-card,.deal-grid,.split,.risk-grid,.how-grid{grid-template-columns:1fr}
-  .hero{padding-top:36px}
+  .hero{padding-top:28px}
   .section-head{align-items:flex-start;flex-direction:column}
   .stats,.sample-facts,.curated-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
   .cta,.footer{align-items:flex-start;flex-direction:column}
-  .topbar{padding-inline:16px}
+  .topbar{
+    padding-inline:16px;
+    display:grid;
+    grid-template-columns:1fr auto;
+    grid-template-areas:"brand install" "nav nav";
+    align-items:center;
+  }
+  .brand{grid-area:brand}
+  .topbar .ghost{grid-area:install}
+  .top-nav{grid-area:nav;flex:none;width:100%;justify-content:flex-start}
+  #how-it-works,#sample-deal,#data-status,#faq,#opportunities,#sources,#risk-controls,#top,#main{
+    scroll-margin-top:8.5rem;
+  }
+  .top-nav a{padding-inline:10px;font-size:13px}
   .hero h1{max-width:none}
   .source-summary{max-width:none}
 }
