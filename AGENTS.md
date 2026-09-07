@@ -35,7 +35,7 @@ The public repository already contains a working public-facing PWA preview. The 
 - Retailer / marketplace integration-status presentation.
 - Installable PWA manifest and offline service worker.
 
-The current top-level project includes `index.html`, `app.js`, `styles.css`, `manifest.webmanifest`, `sw.js`, `db/`, `lib/`, `docs/`, `tests/`, and `.github/`. Inspect these before proposing architecture changes.
+The current top-level project includes `index.html`, `calculator.html`, `calculator.js`, `app.js`, `styles.css`, `manifest.webmanifest`, `sw.js`, `db/`, `lib/`, `docs/`, `tests/`, and `.github/`. Inspect these before proposing architecture changes. The ENP Calculator is a no-scrape, user-comp tool (`lib/enp-calculator.js`) and must not grow Keepa, Bright Data, Oxylabs, or other paid lookup dependencies.
 
 ## Data status / honesty requirement
 The public preview currently uses clearly labeled demonstration opportunity data. Live retailer feeds, credentials, databases and private backend services are intentionally not stored in this public repository.

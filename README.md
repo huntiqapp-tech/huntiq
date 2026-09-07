@@ -12,6 +12,7 @@ Public-facing HUNTIQ PWA preview for retail deal discovery and resale intelligen
 - Persistent browser watchlist using localStorage
 - Retailer / marketplace integration status
 - Installable PWA manifest and offline service worker
+- No-scrape ENP Calculator (`calculator.html`) for user-pasted buy prices and comps — ENP, max buy, ROI, BUY/MAYBE/PASS; 3 free local runs per day
 
 ## Data notice
 The public preview currently uses clearly labeled demonstration opportunity data. Live retailer feeds, credentials, databases and private backend services are intentionally not stored in this public repository.

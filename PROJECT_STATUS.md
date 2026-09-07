@@ -3,11 +3,12 @@
 Last established from repository and product handoff: 2026-09-04. This is the living handoff and must be updated after meaningful work.
 
 ## CURRENT VERSION
-- Package: **0.9.97**
+- Package: **0.9.110**
 - Public PWA preview is functional but still intentionally uses demonstration opportunity data until rights-cleared live integrations are connected.
-- Offline cache: **`huntiq-public-v97`**.
+- Offline cache: **`huntiq-public-v110`**.
 
 ## DONE / PRESENT
+- **v0.9.110 no-scrape ENP Calculator MVP:** `calculator.html` is a phone-first public PWA page for user-pasted buy prices and Amazon/eBay comps. It returns ENP (hero metric, never MSRP % off), acquisition-basis ROI, max buy that still hits target ROI **and** min profit, headroom, break-even sell, optional downside ENP, and BUY/MAYBE/PASS. Last 20 runs persist in localStorage. Soft gate: 3 free calculations per local calendar day, then a `$9 unlock — coming soon` Gumroad stub (no Stripe). No Keepa, Bright Data, Oxylabs, RetailerAPI, or other live fetches. Demo opportunity cards are unchanged. Math lives in `lib/enp-calculator.js` with `tests/enp-calculator.test.js`. Existing `lib/decision.js` max-buy was not reused because it mixes acquire shipping with outbound/FBA fees.
 - Mobile-first installable PWA with offline service worker and browser-persistent watchlist.
 - Strict completed-sale resale aggregation in `lib/resale-history.js`; active/asking/cancelled rows cannot contaminate sold-history metrics.
 - 30/60/90 resale windows use match/source-quality-weighted effective evidence, IQR outlier filtering, resale freshness and source reliability.

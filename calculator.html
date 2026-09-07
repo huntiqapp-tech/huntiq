@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#07110f">
+  <meta name="description" content="HUNTIQ ENP Calculator — paste your buy price and comps. Get expected net profit, max buy, ROI, and a BUY / MAYBE / PASS verdict.">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./styles.css">
+  <title>HUNTIQ — ENP Calculator</title>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="./index.html">
+      <span class="brand-mark">H</span>
+      <span><strong>HUNTIQ</strong><small>Find. Flip. Profit.</small></span>
+    </a>
+    <nav class="topnav" aria-label="Primary">
+      <a href="./index.html#opportunities">Deals</a>
+      <a href="./calculator.html" aria-current="page">ENP Calculator</a>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section class="hero shell calc-hero">
+      <div class="eyebrow">NO-SCRAPE TRUST MATH</div>
+      <h1>ENP Calculator</h1>
+      <p>Paste the buy price and the Amazon or eBay comps you already looked up. HUNTIQ returns expected net profit, max buy, ROI, and a BUY / MAYBE / PASS call. The hero number is ENP — never MSRP percent off.</p>
+      <p id="trustAlways" class="trust-line"></p>
+      <p id="gateNote" class="gate-note"></p>
+    </section>
+
+    <section class="shell section calc-section">
+      <form id="enpForm" class="calc-form" novalidate>
+        <fieldset class="panel calc-fieldset">
+          <div class="eyebrow">BUY</div>
+          <h2>What you pay</h2>
+          <div class="calc-grid">
+            <label class="field full">
+              <span>Title / nickname</span>
+              <input name="title" type="text" maxlength="80" placeholder="Optional — Milwaukee M18 kit" autocomplete="off">
+            </label>
+            <label class="field">
+              <span>Retailer</span>
+              <select id="retailer" name="retailer"></select>
+            </label>
+            <label class="field">
+              <span>Buy price *</span>
+              <input name="buyPrice" type="number" inputmode="decimal" min="0.01" step="0.01" required placeholder="49.97">
+            </label>
+            <label class="field">
+              <span>Tax rate %</span>
+              <input name="taxRatePct" type="number" inputmode="decimal" min="0" step="0.01" value="6">
+            </label>
+            <label class="field">
+              <span>Shipping / gas to acquire</span>
+              <input name="acquireShip" type="number" inputmode="decimal" min="0" step="0.01" value="0">
+            </label>
+            <label class="field">
+              <span>Units</span>
+              <input name="units" type="number" inputmode="numeric" min="1" step="1" value="1">
+            </label>
+          </div>
+        </fieldset>
+
+        <fieldset class="panel calc-fieldset">
+          <div class="eyebrow">SELL</div>
+          <h2>Comps you already have</h2>
+          <p class="field-hint">Use completed / sold comps, not current asking prices.</p>
+          <div class="calc-grid">
+            <label class="field">
+              <span>Marketplace</span>
+              <select id="marketplace" name="marketplace"></select>
+            </label>
+            <label class="field">
+              <span>Expected sell price *</span>
+              <input name="sellPrice" type="number" inputmode="decimal" min="0.01" step="0.01" required placeholder="89.00">
+              <small class="field-hint">Enter a completed/sold comp, not a current asking price.</small>
+            </label>
+            <label class="field">
+              <span>Conservative sell low</span>
+              <input name="conservativeSell" type="number" inputmode="decimal" min="0" step="0.01" placeholder="Optional">
+              <small class="field-hint">Optional sold-comp floor, not an active listing.</small>
+            </label>
+            <label class="field">
+              <span>Optimistic sell high</span>
+              <input name="optimisticSell" type="number" inputmode="decimal" min="0" step="0.01" placeholder="Optional">
+            </label>
+            <label class="field">
+              <span>Referral fee %</span>
+              <input id="referralPct" name="referralPct" type="number" inputmode="decimal" min="0" max="99.99" step="0.01">
+            </label>
+            <label class="field">
+              <span id="outboundLabel">FBA fee</span>
+              <input name="fbaOrShipOut" type="number" inputmode="decimal" min="0" step="0.01" required placeholder="12.00">
+            </label>
+            <label class="field">
+              <span>Other fees</span>
+              <input name="otherFees" type="number" inputmode="decimal" min="0" step="0.01" value="0">
+              <small class="field-hint">Only confirmed-eligible fees or discounts. Unqualified promos stay out.</small>
+            </label>
+          </div>
+        </fieldset>
+
+        <fieldset class="panel calc-fieldset">
+          <div class="eyebrow">TARGETS</div>
+          <h2>What “good” means</h2>
+          <div class="calc-grid">
+            <label class="field">
+              <span>Target ROI %</span>
+              <input name="targetRoi" type="number" inputmode="decimal" min="0" step="0.1" value="30">
+            </label>
+            <label class="field">
+              <span>Min profit $</span>
+              <input name="minProfit" type="number" inputmode="decimal" step="0.01" value="15">
+            </label>
+          </div>
+        </fieldset>
+
+        <div class="calc-actions">
+          <button class="primary" type="submit">Calculate ENP</button>
+          <p class="muted">Uses only the numbers you typed. No live retailer or Keepa lookup.</p>
+        </div>
+      </form>
+
+      <div id="unlockGate" class="panel unlock-panel" hidden>
+        <div class="eyebrow">SOFT GATE</div>
+        <h2>$9 unlock — coming soon</h2>
+        <p>This device has used today’s 3 free calculations. Unlock is a Gumroad placeholder only — no Stripe and no live checkout.</p>
+        <p class="trust-line">Unlock does not turn these numbers into live Keepa or Home Depot evidence. Comps stay user-entered.</p>
+        <button id="unlockStub" class="secondary" type="button">Gumroad stub</button>
+        <p id="unlockSoon" class="notice" hidden><strong>Coming soon.</strong> Paid unlock is not live. Recheck after midnight local time for 3 more free runs.</p>
+      </div>
+
+      <section id="results" class="calc-results" hidden></section>
+
+      <section class="panel calc-history">
+        <div class="eyebrow">THIS DEVICE</div>
+        <h2>Last 20 runs</h2>
+        <div id="history"></div>
+      </section>
+    </section>
+  </main>
+
+  <footer class="shell footer">
+    <span>© <span id="year"></span> HUNTIQ</span>
+    <span>ENP Calculator · user-entered comps only</span>
+  </footer>
+
+  <script src="./lib/enp-calculator.js" defer></script>
+  <script src="./calculator.js" defer></script>
+</body>
+</html>
