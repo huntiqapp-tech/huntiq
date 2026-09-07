@@ -1,0 +1,12 @@
+# Single source of truth for files autonomous HUNTIQ agents must never modify.
+# Workflows load this list from origin/main, not from the untrusted PR worktree.
+.github/workflows/
+.github/huntiq-autonomy-protected-paths.txt
+scripts/autofix-attempt-ledger.js
+tests/autofix-attempt-ledger.test.js
+tests/autonomy-trust-pins.test.js
+tests/customer-pwa-authority-gate.test.js
+tests/resale-integrity.test.js
+tests/history-identity.test.js
+tests/acquisition-cost.test.js
+tests/opportunity-ranking.test.js
