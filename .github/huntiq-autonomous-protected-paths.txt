@@ -1,0 +1,10 @@
+# Authoritative paths autonomous build/repair agents may never modify.
+# The .github/ prefix protects this file and every workflow/config file.
+.github/
+docs/autonomy-review-contract.md
+docs/autonomy-review-provenance.md
+tests/customer-pwa-authority-gate.test.js
+tests/resale-integrity.test.js
+tests/history-identity.test.js
+tests/acquisition-cost.test.js
+tests/opportunity-ranking.test.js
