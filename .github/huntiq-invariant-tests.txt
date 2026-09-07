@@ -1,3 +1,4 @@
+tests/autonomy-invariant-integration.test.js
 tests/customer-pwa-authority-gate.test.js
 tests/resale-integrity.test.js
 tests/history-identity.test.js
