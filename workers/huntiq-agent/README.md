@@ -47,7 +47,9 @@ Root CI also runs:
 - `tests/huntiq-agent-http.test.js` against `handlePublicRequest`
 - `tests/huntiq-agent-tools.test.js` against the Think tool execute helpers
 - `tests/huntiq-agent-enp-contract.test.js` against `lib/enp-calculator.js`
-- `tests/huntiq-agent-wrangler.test.js` for tracing and secret-pattern checks
+- `tests/huntiq-agent-wrangler.test.js` for tracing and a **best-effort** secret-pattern lint of this package’s source/config files. It is not a repo-wide secret scanner.
+
+`npm run audit` (`npm audit --omit=dev --audit-level=high`) reported 0 vulnerabilities on 2026-09-07 in this environment. Re-run it before any future deploy; audit is not a substitute for reviewing install scripts or wiring this Worker to gethuntiq.com.
 
 `npm run dry-run` is `wrangler deploy --dry-run` only. It must not publish the Worker.
 
