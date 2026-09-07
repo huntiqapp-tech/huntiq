@@ -43,12 +43,18 @@ for (const id of faqButtons) {
 }
 
 const sourceStatuses = [...app.matchAll(/status:'(Connected|Evaluating|Restricted)'/g)].map(m => m[1]);
+const connected = sourceStatuses.filter(s => s === 'Connected').length;
+const evaluating = sourceStatuses.filter(s => s === 'Evaluating').length;
+const restricted = sourceStatuses.filter(s => s === 'Restricted').length;
+const expectedSummary = `${connected} connected · ${evaluating} evaluating · ${restricted} restricted · ${sourceStatuses.length} tracked sources`;
 assert.strictEqual(sourceStatuses.length, 7, 'seven tracked sources in app.js');
-assert.strictEqual(sourceStatuses.filter(s => s === 'Connected').length, 0, 'no live connected customer feeds claimed');
-assert.strictEqual(sourceStatuses.filter(s => s === 'Evaluating').length, 5, 'five evaluating sources');
-assert.strictEqual(sourceStatuses.filter(s => s === 'Restricted').length, 2, 'two restricted sources');
-assert(html.includes('0 connected · 5 evaluating · 2 restricted · 7 tracked sources'), 'landing summary matches source inventory');
+assert.strictEqual(connected, 0, 'no live connected customer feeds claimed');
+assert.strictEqual(evaluating, 5, 'five evaluating sources');
+assert.strictEqual(restricted, 2, 'two restricted sources');
+assert(html.includes(expectedSummary), 'landing summary matches the app.js source inventory');
+assert.strictEqual(matches(html, /class="source-card"/g).length, 0, 'static HTML must not embed a second source-card list');
 assert(html.includes('id="landingSourceGrid"') && html.includes('id="sourceGrid"'), 'landing and demo source grids share one inventory');
+assert(html.includes('data-source-grid') && app.includes('replaceChildren'), 'both grids are populated from renderSources()');
 assert(app.includes("status:'Evaluating'") && app.includes("status:'Restricted'"), 'source labels are Connected/Evaluating/Restricted');
 assert(app.includes("setAttribute('aria-pressed'") && app.includes("setAttribute('aria-expanded'") && app.includes("setAttribute('role','progressbar')"), 'deal cards set pressed/expanded/progress semantics');
 assert(app.includes('comp-panel-${d.id}') && app.includes('announce('), 'unique details IDs and live announcements');

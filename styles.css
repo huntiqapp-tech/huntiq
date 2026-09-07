@@ -276,7 +276,8 @@ img,svg,video{max-width:100%;height:auto}
 .score-bars span{color:var(--muted)}
 .pill-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
 .pill-row span{padding:8px 10px;border-radius:999px;border:1px solid var(--line);color:#c4d1cc}
-.source-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.source-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;min-height:12rem}
+.source-loading{grid-column:1/-1;margin:0;color:var(--muted);font-size:14px;line-height:1.5}
 .source-card{border-radius:16px;padding:18px}
 .source-card h3{margin:0 0 6px}
 .source-card p{margin:0;font-size:13px;line-height:1.5}
