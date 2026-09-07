@@ -79,7 +79,7 @@ jobs:
           `[AI BUILD]` issues, automated BLOCK repairs are enabled and capped at exactly two
           attempts. The repair workflow must verify the reviewed SHA, same-repo branch,
           OWNER-authored source issue, protected workflow-file diff, and server-side attempt
-          labels before it may write. Agents never merge `main`; auto-merge remains disabled
+          records before it may write. Agents never merge `main`; auto-merge remains disabled
           and the project manager is the final merge gate.
           EOF
 
