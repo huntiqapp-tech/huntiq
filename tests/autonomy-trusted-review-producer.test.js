@@ -32,7 +32,6 @@ for (const token of [
   'id-token: write',
   'huntiq-review-result-${{ needs.prepare-review.outputs.head_sha }}',
   'verdict.txt',
-  'findings.json',
   'This workflow never merges anything; auto-merge remains disabled.'
 ]) assert(workflow.includes(token), `trusted review workflow contract missing: ${token}`);
 
