@@ -79,6 +79,8 @@ assert(html.includes('id="installBtn"'), 'install control preserved');
 
 assert(app.includes('renderSampleDeal') && app.includes("d.id==='hd-m18'"), 'hero/curated sample cards hydrate from the Home Depot demo deal');
 assert(html.includes('Asking prices and active listings are not completed-sale evidence'), 'marketplace pills are qualified as not equal sold-comp feeds');
+assert(app.includes("soldEvidence:'asking-only'") && app.includes('not sold-comp eligible'), 'eBay Evaluating is structurally asking-only, not sold-comp eligible');
+assert(html.includes('asking only') && html.includes('sold feed not connected'), 'each marketplace pill has a per-source sold-evidence qualifier');
 
 const demoBlock = app.match(/\{id:'hd-m18'[\s\S]*?holdingCostPerDay:[0-9.]+\}/);
 assert(demoBlock, 'hd-m18 demo deal is the sample-card source of truth');
