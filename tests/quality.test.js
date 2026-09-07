@@ -7,4 +7,6 @@ assert(oldCommunity.score<0.05,'old community evidence should be heavily discoun
 assert(Q.freshnessWeight('2026-08-20T08:00:00Z',{now,maxAgeHours:168})===0,'evidence beyond max age should expire');
 const combined=Q.combineEvidence([{source:'retailer-page',observedAt:'2026-08-30T07:30:00Z',verified:true,now},{source:'community',observedAt:'2026-08-30T07:45:00Z',verified:true,now}]);
 assert(combined.score>0.75&&combined.count===2,'multiple fresh signals should combine into strong evidence');
+// The full npm test path must exercise the exact attempt-ledger implementation used by the bounded repair workflow.
+require('./autofix-attempt-ledger.test.js');
 console.log('quality tests passed');
