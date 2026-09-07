@@ -10,7 +10,8 @@
     "typecheck": "wrangler types && tsc --noEmit",
     "check": "npm run typecheck",
     "test": "node --experimental-strip-types --test src/enp.test.ts src/coach.test.ts",
-    "dry-run": "wrangler deploy --dry-run"
+    "dry-run": "wrangler deploy --dry-run",
+    "audit": "npm audit --omit=dev --audit-level=high"
   },
   "engines": {
     "node": ">=22"
