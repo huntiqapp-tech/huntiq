@@ -5,12 +5,13 @@
 Public-facing HUNTIQ PWA preview for retail deal discovery and resale intelligence.
 
 ## Current public build
+- Conversion-oriented landing page with a labeled demo preview and no purchasing automation
 - Responsive mobile-first interface
 - Demonstration opportunity scoring UI
 - 30/60/90-day resale snapshot presentation
 - Profit, ROI and Flip Score presentation
 - Persistent browser watchlist using localStorage
-- Retailer / marketplace integration status
+- Honest Connected / Evaluating / Restricted source-status presentation
 - Installable PWA manifest and offline service worker
 
 ## Data notice

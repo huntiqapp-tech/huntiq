@@ -1,1 +1,460 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#07110f"><meta name="description" content="HUNTIQ — Find. Flip. Profit. Retail deal intelligence for price anomalies, resale comps, profit and ROI."><link rel="manifest" href="./manifest.webmanifest"><link rel="icon" href="./icon.svg" type="image/svg+xml"><link rel="stylesheet" href="./styles.css"><link rel="stylesheet" href="./deal-coach.css"><title>HUNTIQ — Find. Flip. Profit.</title></head><body><header class="topbar"><a class="brand" href="#top"><span class="brand-mark">H</span><span><strong>HUNTIQ</strong><small>Find. Flip. Profit.</small></span></a><button id="installBtn" class="ghost" hidden>Install App</button></header><main id="top"><section class="hero shell"><div class="eyebrow">RETAIL ARBITRAGE INTELLIGENCE</div><h1>Find the deal before everyone else.</h1><p>HUNTIQ scores unusual retail prices, verifies product identity against resale comps, estimates fees, and surfaces opportunities with profit and ROI in one place.</p><div class="hero-actions"><a class="primary" href="#opportunities">Explore Opportunities</a><a class="secondary" href="#sources">Source Status</a></div><div class="notice"><strong>Public preview:</strong> opportunities shown below are demonstration data until live retailer APIs are connected.</div></section><section class="metrics shell"><div class="metric"><span>4</span><small>Demo opportunities</small></div><div class="metric"><span>6</span><small>Launch sources</small></div><div class="metric"><span>30/60/90</span><small>Resale windows</small></div><div class="metric"><span>18360</span><small>Initial local market</small></div></section><section id="opportunities" class="shell section"><div class="section-head"><div><div class="eyebrow">OPPORTUNITIES</div><h2>High-signal deal board</h2></div><div class="filters"><button class="filter active" data-filter="all">All</button><button class="filter" data-filter="penny">Penny Watch</button><button class="filter" data-filter="error">Probable Error</button><button class="filter" data-filter="extreme">Extreme Deal</button><button class="filter" data-filter="watch">Watchlist</button></div></div><div id="dealGrid" class="deal-grid"></div></section><section class="shell section split"><div class="panel"><div class="eyebrow">HOW HUNTIQ SCORES</div><h2>Evidence first, hype second.</h2><p>Every opportunity combines store-local price-history deviation, history stability and sample strength, source freshness and provenance reliability, <strong>cross-source price consensus</strong>, multi-source confirmation, product-match confidence, markdown velocity, resale confidence, comp freshness, liquidity, estimated fees, liquidation value, shipping, profit and ROI. Marketplace percentage fees are calculated against the venue-specific fee base, including buyer-paid shipping or collected sales tax when the marketplace charges fees on those amounts, so card-level profit/ROI and alert eligibility do not inherit item-price-only economics. Required purchase quantity is checked against recent sold-market depth, and HUNTIQ models how much acquisition capital is still tied up after 30, 60 and 90 days so a six-unit promotion cannot inherit the confidence of a one-unit flip. Later units are stress-tested against weakening resale prices, marketplace-specific fee/shipping/holding-cost drift, and an additional cost-uncertainty buffer when exact future selling costs are not known. Future-dated retailer observations are rejected from price-history evidence so a bad clock or malformed feed cannot manufacture sample strength or freshness. Duplicate price-history timestamps are collapsed before anomaly scoring. Thin or volatile histories, conflicting store prices, weak source provenance, mismatched products, stale resale evidence, or unconfirmed promotion quantities are downgraded before they can inflate an alert.</p><div class="score-bars"><div><span>Anomaly confidence</span><b>34%</b></div><div><span>ROI strength</span><b>22%</b></div><div><span>Downside ROI</span><b>14%</b></div><div><span>Liquidity + resale confidence</span><b>30%</b></div></div></div><div class="panel"><div class="eyebrow">RESALE INTELLIGENCE</div><h2>Sold data stays sold data.</h2><p>HUNTIQ separates <strong>Verified Sold</strong>, <strong>Current Asking</strong>, and <strong>Estimated Market Value</strong>, time-decays older comparable sales, discounts low-quality comparable evidence, then stress-tests a conservative liquidation value, confidence-adjusted resale value, break-even resale price, maximum safe buy price, and the best configured resale exit before an alert qualifies. Multi-unit deals show expected units sold, realized profit and capital still tied up at 30/60/90 days. Falling sold-price trends reduce later-unit exit value, while marketplace stress can increase later fees, shipping and holding costs and reserve an additional uncertainty buffer for variable marketplace costs before those units reach the decision floor. Future rebates or store credits are valued separately from cash paid at checkout, basket-level rewards are allocated across qualifying items, and buy-X-get-Y or quantity-tier savings only enter ROI after the full qualifying quantity is confirmed.</p><div class="pill-row"><span>eBay</span><span>Facebook Marketplace</span><span>Mercari</span><span>Reverb</span><span>StockX</span><span>Swappa</span></div></div></section><section id="sources" class="shell section"><div class="section-head"><div><div class="eyebrow">DATA SOURCES</div><h2>Integration status</h2></div><span class="live-dot">Build queue active</span></div><div id="sourceGrid" class="source-grid"></div></section><section class="shell section cta"><div><div class="eyebrow">HUNTIQ</div><h2>Find. Flip. Profit.</h2><p>Built for fast deal discovery without automated purchasing.</p></div><a class="primary" href="mailto:huntiqapp@gmail.com?subject=HUNTIQ%20Early%20Access">Early Access</a></section></main><footer class="shell footer"><span>© <span id="year"></span> HUNTIQ</span><span>Public preview · No checkout automation</span></footer><template id="dealTemplate"><article class="deal-card"><div class="deal-top"><span class="retailer"></span><span class="badge"></span></div><h3></h3><div class="price-row"><strong class="current"></strong><span class="reference"></span></div><div class="drop"></div><div class="penny-signal"></div><div class="stats"><div><small>Market value</small><b class="market"></b></div><div><small>Est. profit</small><b class="profit"></b></div><div><small>ROI</small><b class="roi"></b></div><div><small>Flip Score</small><b class="flip"></b></div></div><div class="confidence"><span></span><div><i></i></div></div><div class="card-actions"><button class="watch-btn"></button><button class="details-btn">30/60/90 comps</button></div><div class="comp-panel" hidden></div></article></template><script src="./lib/quality.js" defer></script><script src="./lib/confirmation.js" defer></script><script src="./lib/engine.js" defer></script><script src="./lib/marketplace-cost-floor.js" defer></script><script src="./lib/marketplace-engine-bridge.js" defer></script><script src="./lib/risk.js" defer></script><script src="./lib/decision.js" defer></script><script src="./lib/history.js" defer></script><script src="./lib/history-query.js" defer></script><script src="./lib/baseline.js" defer></script><script src="./lib/history-anomaly.js" defer></script><script src="./lib/freshness.js" defer></script><script src="./lib/fulfillment.js" defer></script><script src="./lib/stress.js" defer></script><script src="./lib/basket-promotions.js" defer></script><script src="./lib/multibuy-promotions.js" defer></script><script src="./lib/acquisition-cost.js" defer></script><script src="./lib/channel-economics.js" defer></script><script src="./lib/resale-history.js" defer></script><script src="./lib/source-reliability.js" defer></script><script src="./lib/evidence-gate.js" defer></script><script src="./lib/capital-velocity.js" defer></script><script src="./lib/unit-exposure.js" defer></script><script src="./lib/partial-liquidation.js" defer></script><script src="./lib/resale-decay.js" defer></script><script src="./lib/marketplace-late-sale.js" defer></script><script src="./lib/marketplace-uncertainty.js" defer></script><script src="./lib/opportunity-evaluator.js" defer></script><script src="./lib/pwa-opportunity.js" defer></script><script src="./lib/resale-outcome.js" defer></script><script src="./lib/matching.js" defer></script><script src="./lib/comp-quality.js" defer></script><script src="./lib/price-consensus.js" defer></script><script src="./lib/snapshot-store.js" defer></script><script src="./lib/alerts.js" defer></script><script src="./lib/pwa-marketplace-economics.js" defer></script><script src="./lib/marketplace-alert-bridge.js" defer></script><script src="./lib/consensus-alerts.js" defer></script><script src="./lib/alert-stress.js" defer></script><script src="./lib/alert-outcome.js" defer></script><script src="./lib/markdown.js" defer></script><script src="./lib/adapters.js" defer></script><script src="./lib/pilot.js" defer></script><script src="./lib/pwa-data-state.js" defer></script><script src="./lib/deal-coach.js" defer></script><script src="./lib/opportunity-ranking.js" defer></script><script src="./app.js" defer></script><script src="./lib/deal-coach-runtime.js" defer></script><script src="./lib/pwa-runtime.js" defer></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#07110f">
+  <meta name="description" content="HUNTIQ helps you judge whether a clearance price is worth the trip. Demo preview — no purchasing automation.">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./deal-coach.css">
+  <title>HUNTIQ — Know which clearance deals are worth the trip</title>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div id="live-announcer" class="visually-hidden" aria-live="polite" aria-atomic="true"></div>
+  <header class="topbar">
+    <a class="brand" href="#top">
+      <span class="brand-mark" aria-hidden="true">H</span>
+      <span>
+        <strong>HUNTIQ</strong>
+        <small>Find. Flip. Profit.</small>
+      </span>
+    </a>
+    <nav class="top-nav" aria-label="Primary">
+      <a href="#how-it-works">How it works</a>
+      <a href="#sample-deal">Sample deal</a>
+      <a href="#data-status">Sources</a>
+      <a href="#opportunities">Demo board</a>
+    </nav>
+    <button id="installBtn" class="ghost" type="button" hidden>Install App</button>
+  </header>
+  <main id="main">
+    <section id="top" class="hero shell" aria-labelledby="hero-heading">
+      <div class="hero-copy">
+        <p class="eyebrow">Find. Flip. Profit.</p>
+        <h1 id="hero-heading">Know which clearance deals are worth the trip</h1>
+        <p>HUNTIQ compares a store price with recent sold comps, fees, and downside risk so you can skip the noise and act on the few deals that still look profitable.</p>
+        <div class="hero-actions">
+          <a class="primary" href="mailto:huntiqapp@gmail.com?subject=HUNTIQ%20Early%20Access">Join early access</a>
+          <a class="secondary" href="#sample-deal">See a sample deal</a>
+        </div>
+        <p class="hero-disclaimer">Demo preview — no purchasing automation.</p>
+      </div>
+      <div class="hero-stage">
+        <article class="sample-card" aria-labelledby="hero-card-title">
+          <div class="sample-visual" aria-hidden="true">
+            <span class="kit-case"></span>
+            <span class="kit-handle"></span>
+            <span class="kit-bit kit-bit-a"></span>
+            <span class="kit-bit kit-bit-b"></span>
+            <span class="kit-bit kit-bit-c"></span>
+          </div>
+          <div class="sample-top">
+            <span class="retailer">Home Depot</span>
+            <span class="data-state-badge demo">Demo preview</span>
+          </div>
+          <h2 id="hero-card-title">Milwaukee M18 Fuel Combo Kit</h2>
+          <div class="price-row">
+            <strong class="current">$129</strong>
+            <span class="reference-line"><s>$599</s> <span class="reference-label">reference, context only</span></span>
+          </div>
+          <p class="drop">Retailer reference is context only — not resale value.</p>
+          <dl class="sample-facts">
+            <div>
+              <dt>30 / 60 / 90 sold medians</dt>
+              <dd>$489 · $475 · $469</dd>
+            </div>
+            <div>
+              <dt>Demo sold comps</dt>
+              <dd>38 in 90 days</dd>
+            </div>
+            <div>
+              <dt>Location identity</dt>
+              <dd>Store/ZIP key 18360</dd>
+            </div>
+            <div>
+              <dt>Fee assumptions</dt>
+              <dd>13.5% + $24 ship</dd>
+            </div>
+          </dl>
+          <p class="sample-note">Sample fields from the labeled Home Depot demo deal. Engine-computed profit, ROI, and Flip Score live on the interactive board below.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="trust-strip shell" aria-label="What HUNTIQ protects">
+      <article class="trust-item">
+        <span class="trust-mark" aria-hidden="true">1</span>
+        <h2>Sold comps stay sold comps</h2>
+        <p>Asking prices are not treated as completed-sale evidence.</p>
+      </article>
+      <article class="trust-item">
+        <span class="trust-mark" aria-hidden="true">2</span>
+        <h2>Store prices stay local</h2>
+        <p>A clearance at one store or ZIP is not a national price.</p>
+      </article>
+      <article class="trust-item">
+        <span class="trust-mark" aria-hidden="true">3</span>
+        <h2>Downside before you drive</h2>
+        <p>Fees, shipping, tax, and conservative exits are visible before you spend the trip.</p>
+      </article>
+      <article class="trust-item">
+        <span class="trust-mark" aria-hidden="true">4</span>
+        <h2>Alerts stay off</h2>
+        <p>Notifications stay disabled until live validation is recorded as passing.</p>
+      </article>
+    </section>
+
+    <section id="how-it-works" class="shell section" aria-labelledby="how-heading">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">How it works</p>
+          <h2 id="how-heading">Three checks before you leave the house</h2>
+        </div>
+      </div>
+      <ol class="how-grid">
+        <li class="how-step">
+          <span class="how-num" aria-hidden="true">01</span>
+          <h3>See the shelf price in context</h3>
+          <p>HUNTIQ compares the current price with store-local history so a markdown is not confused with everyday noise.</p>
+        </li>
+        <li class="how-step">
+          <span class="how-num" aria-hidden="true">02</span>
+          <h3>Check recent sold comps</h3>
+          <p>Where sold evidence exists, 30 / 60 / 90-day completed-sale windows are shown separately from current asking prices.</p>
+        </li>
+        <li class="how-step">
+          <span class="how-num" aria-hidden="true">03</span>
+          <h3>Weigh fees and downside</h3>
+          <p>Estimated fees, shipping, tax, and conservative exits sit next to profit and ROI so a pretty discount can still fail the trip.</p>
+        </li>
+      </ol>
+    </section>
+
+    <section id="sample-deal" class="shell section" aria-labelledby="sample-heading">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">One curated opportunity</p>
+          <h2 id="sample-heading">A labeled demo, not a live buy signal</h2>
+        </div>
+      </div>
+      <article class="curated-card">
+        <div class="curated-copy">
+          <p class="eyebrow">Home Depot · Demo preview</p>
+          <h3>Milwaukee M18 Fuel Combo Kit</h3>
+          <p>This card uses the same demonstration fields as the interactive board: current price <strong>$129</strong>, retailer reference <strong>$599</strong> (context only), and demo sold medians of <strong>$489 / $475 / $469</strong> across 30 / 60 / 90 days.</p>
+          <p>Location key <strong>18360</strong> is a sample store/ZIP identity on this demo deal. HUNTIQ keeps store, ZIP, and online prices separate because local clearance is not a national price. It is not a live local-market feed.</p>
+          <p>Deal Coach forces demonstration rows to <strong>WATCH</strong>, so this preview cannot look like a live recommendation. Alerts stay off.</p>
+          <a class="primary" href="#opportunities">Open the interactive demo</a>
+        </div>
+        <dl class="curated-stats">
+          <div>
+            <dt>Current price</dt>
+            <dd>$129</dd>
+          </div>
+          <div>
+            <dt>Reference (context)</dt>
+            <dd>$599</dd>
+          </div>
+          <div>
+            <dt>30-day sold median</dt>
+            <dd>$489</dd>
+          </div>
+          <div>
+            <dt>Demo sold comps</dt>
+            <dd>38</dd>
+          </div>
+          <div>
+            <dt>Location provenance</dt>
+            <dd>18360 demo key</dd>
+          </div>
+          <div>
+            <dt>Purchase automation</dt>
+            <dd>None</dd>
+          </div>
+        </dl>
+      </article>
+    </section>
+
+    <section id="risk-controls" class="shell section" aria-labelledby="risk-heading">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Downside and risk control</p>
+          <h2 id="risk-heading">Pretty discounts can still lose money</h2>
+        </div>
+      </div>
+      <div class="risk-grid">
+        <article class="panel">
+          <h3>Fees and friction first</h3>
+          <p>Marketplace percentage fees, shipping, tax, and holding cost are shown before profit and ROI. Percentage fees follow the venue fee base, including buyer-paid shipping or collected tax when the marketplace charges fees on those amounts.</p>
+        </article>
+        <article class="panel">
+          <h3>Conservative exits</h3>
+          <p>HUNTIQ stress-tests liquidation value, later-unit decay, and marketplace cost drift so a six-unit promotion cannot inherit the confidence of a one-unit flip.</p>
+        </article>
+        <article class="panel">
+          <h3>Conflicts fail closed</h3>
+          <p>Conflicting retailer prices, thin history, mismatched products, or missing sold evidence reduce confidence. They are not averaged into a high-confidence buy.</p>
+        </article>
+        <article class="panel">
+          <h3>Demo cannot alert</h3>
+          <p>Demonstration, cached, delayed, and validation-only rows stay ineligible for notifications. Only fresh, validated live observations can retain alert eligibility after the existing safety floor.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="data-status" class="shell section" aria-labelledby="status-heading">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Data sources</p>
+          <h2 id="status-heading">Connected, evaluating, or restricted</h2>
+          <p class="section-lede">This public preview does not ship live retailer credentials. Status labels below are the honest integration queue, not a live-operations dashboard.</p>
+        </div>
+        <p class="source-summary" data-source-summary>0 connected · 5 evaluating · 2 restricted · 7 tracked sources</p>
+      </div>
+      <div id="landingSourceGrid" class="source-grid" data-source-grid>
+        <article class="source-card">
+          <h3>Home Depot</h3>
+          <p>Public store-level pricing, clearance progression and markdown research. Shadow validation is in progress and is not a live customer feed.</p>
+          <p class="status evaluating"><span class="status-mark evaluating" aria-hidden="true"></span>Evaluating</p>
+        </article>
+        <article class="source-card">
+          <h3>Best Buy</h3>
+          <p>Official products, stores, availability and open-box API route identified. Credentials and live customer access are not in this public preview.</p>
+          <p class="status evaluating"><span class="status-mark evaluating" aria-hidden="true"></span>Evaluating</p>
+        </article>
+        <article class="source-card">
+          <h3>Walmart</h3>
+          <p>Official affiliate/product-data route under integration research. Not connected as a live customer feed.</p>
+          <p class="status evaluating"><span class="status-mark evaluating" aria-hidden="true"></span>Evaluating</p>
+        </article>
+        <article class="source-card">
+          <h3>Lowe's</h3>
+          <p>Public research only where retailer terms permit; no resale-oriented scraping.</p>
+          <p class="status restricted"><span class="status-mark restricted" aria-hidden="true"></span>Restricted</p>
+        </article>
+        <article class="source-card">
+          <h3>Target</h3>
+          <p>Public research only. Current terms prohibit systematic scraping/data extraction of product listings and prices.</p>
+          <p class="status restricted"><span class="status-mark restricted" aria-hidden="true"></span>Restricted</p>
+        </article>
+        <article class="source-card">
+          <h3>eBay</h3>
+          <p>Resale market data. The public Browse API is asking prices, not completed-sale history. Sold-history access remains subject to developer approval.</p>
+          <p class="status evaluating"><span class="status-mark evaluating" aria-hidden="true"></span>Evaluating</p>
+        </article>
+        <article class="source-card">
+          <h3>Community Signals</h3>
+          <p>Reddit and public deal communities are leads only; freshness decays until retailer verification.</p>
+          <p class="status evaluating"><span class="status-mark evaluating" aria-hidden="true"></span>Evaluating</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="faq" class="shell section" aria-labelledby="faq-heading">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">FAQ</p>
+          <h2 id="faq-heading">Straight answers about this preview</h2>
+        </div>
+      </div>
+      <div class="faq-list">
+        <div class="faq-item">
+          <h3>
+            <button type="button" class="faq-trigger" id="faq-q1" aria-expanded="false" aria-controls="faq-a1">Is this live retailer data?</button>
+          </h3>
+          <div id="faq-a1" class="faq-panel" role="region" aria-labelledby="faq-q1" hidden>
+            <p>No. Opportunities in this public preview are labeled demonstration data until rights-cleared live integrations are connected. Live, cached, delayed, demo, and validation-only states stay visibly distinct.</p>
+          </div>
+        </div>
+        <div class="faq-item">
+          <h3>
+            <button type="button" class="faq-trigger" id="faq-q2" aria-expanded="false" aria-controls="faq-a2">Does HUNTIQ buy items for me?</button>
+          </h3>
+          <div id="faq-a2" class="faq-panel" role="region" aria-labelledby="faq-q2" hidden>
+            <p>No. HUNTIQ does not automate purchasing or checkout. The product is deal intelligence for a person who still decides whether the trip is worth it.</p>
+          </div>
+        </div>
+        <div class="faq-item">
+          <h3>
+            <button type="button" class="faq-trigger" id="faq-q3" aria-expanded="false" aria-controls="faq-a3">Why does a sample deal mention 18360?</button>
+          </h3>
+          <div id="faq-a3" class="faq-panel" role="region" aria-labelledby="faq-q3" hidden>
+            <p>18360 is a demonstration store/ZIP location key on the sample Home Depot deal. HUNTIQ keeps store, ZIP, and online prices separate because a clearance price at one location is not a national price. It is not a live local-market feed.</p>
+          </div>
+        </div>
+        <div class="faq-item">
+          <h3>
+            <button type="button" class="faq-trigger" id="faq-q4" aria-expanded="false" aria-controls="faq-a4">When do alerts turn on?</button>
+          </h3>
+          <div id="faq-a4" class="faq-panel" role="region" aria-labelledby="faq-q4" hidden>
+            <p>Alerts stay off until authenticated provider lookup, manual source comparison, display and retention rights, history promotion, verified resale evidence, and downside economics are recorded as passing.</p>
+          </div>
+        </div>
+        <div class="faq-item">
+          <h3>
+            <button type="button" class="faq-trigger" id="faq-q5" aria-expanded="false" aria-controls="faq-a5">Can I treat Flip Score as a live recommendation?</button>
+          </h3>
+          <div id="faq-a5" class="faq-panel" role="region" aria-labelledby="faq-q5" hidden>
+            <p>No. Flip Score and profit/ROI on the board below are engine-computed from the evidence on each card. Demonstration rows stay capped and are forced to WATCH so demo evidence cannot look like a live buy.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="shell section cta" aria-labelledby="cta-heading">
+      <div>
+        <p class="eyebrow">HUNTIQ</p>
+        <h2 id="cta-heading">Join early access</h2>
+        <p>Built for fast deal discovery without automated purchasing. This remains a demo preview until live validation.</p>
+      </div>
+      <a class="primary" href="mailto:huntiqapp@gmail.com?subject=HUNTIQ%20Early%20Access">Join early access</a>
+    </section>
+
+    <section id="opportunities" class="shell section" aria-labelledby="opportunities-heading">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Interactive demo</p>
+          <h2 id="opportunities-heading">High-signal deal board</h2>
+        </div>
+        <div class="filters" role="group" aria-label="Filter opportunities">
+          <button class="filter active" type="button" data-filter="all" aria-pressed="true">All</button>
+          <button class="filter" type="button" data-filter="penny" aria-pressed="false">Penny Watch</button>
+          <button class="filter" type="button" data-filter="error" aria-pressed="false">Probable Error</button>
+          <button class="filter" type="button" data-filter="extreme" aria-pressed="false">Extreme Deal</button>
+          <button class="filter" type="button" data-filter="watch" aria-pressed="false">Watchlist</button>
+          <button class="filter" type="button" data-filter="live" aria-pressed="false">Live</button>
+          <button class="filter" type="button" data-filter="demo" aria-pressed="false">Demo</button>
+        </div>
+      </div>
+      <p class="notice demo-board-notice"><strong>Public preview:</strong> opportunities shown here are demonstration data until live retailer APIs are connected. 18360 is a sample store/ZIP identity on the Home Depot demo card, not a live local-market feed.</p>
+      <div id="dealGrid" class="deal-grid"></div>
+    </section>
+
+    <section class="shell section split" aria-labelledby="scoring-heading">
+      <div class="panel">
+        <p class="eyebrow">How HUNTIQ scores</p>
+        <h2 id="scoring-heading">Evidence first, hype second.</h2>
+        <p>Every opportunity combines store-local price-history deviation, history stability and sample strength, source freshness and provenance reliability, <strong>cross-source price consensus</strong>, multi-source confirmation, product-match confidence, markdown velocity, resale confidence, comp freshness, liquidity, estimated fees, liquidation value, shipping, profit and ROI. Marketplace percentage fees are calculated against the venue-specific fee base, including buyer-paid shipping or collected sales tax when the marketplace charges fees on those amounts, so card-level profit/ROI and alert eligibility do not inherit item-price-only economics. Required purchase quantity is checked against recent sold-market depth, and HUNTIQ models how much acquisition capital is still tied up after 30, 60 and 90 days so a six-unit promotion cannot inherit the confidence of a one-unit flip. Later units are stress-tested against weakening resale prices, marketplace-specific fee/shipping/holding-cost drift, and an additional cost-uncertainty buffer when exact future selling costs are not known. Future-dated retailer observations are rejected from price-history evidence so a bad clock or malformed feed cannot manufacture sample strength or freshness. Duplicate price-history timestamps are collapsed before anomaly scoring. Thin or volatile histories, conflicting store prices, weak source provenance, mismatched products, stale resale evidence, or unconfirmed promotion quantities are downgraded before they can inflate an alert.</p>
+        <div class="score-bars">
+          <div><span>Anomaly confidence</span><b>34%</b></div>
+          <div><span>ROI strength</span><b>22%</b></div>
+          <div><span>Downside ROI</span><b>14%</b></div>
+          <div><span>Liquidity + resale confidence</span><b>30%</b></div>
+        </div>
+      </div>
+      <div class="panel">
+        <p class="eyebrow">Resale intelligence</p>
+        <h2>Sold data stays sold data.</h2>
+        <p>HUNTIQ separates <strong>Verified Sold</strong>, <strong>Current Asking</strong>, and <strong>Estimated Market Value</strong>, time-decays older comparable sales, discounts low-quality comparable evidence, then stress-tests a conservative liquidation value, confidence-adjusted resale value, break-even resale price, maximum safe buy price, and the best configured resale exit before an alert qualifies. Multi-unit deals show expected units sold, realized profit and capital still tied up at 30/60/90 days. Falling sold-price trends reduce later-unit exit value, while marketplace stress can increase later fees, shipping and holding costs and reserve an additional uncertainty buffer for variable marketplace costs before those units reach the decision floor. Future rebates or store credits are valued separately from cash paid at checkout, basket-level rewards are allocated across qualifying items, and buy-X-get-Y or quantity-tier savings only enter ROI after the full qualifying quantity is confirmed.</p>
+        <div class="pill-row">
+          <span>eBay</span>
+          <span>Facebook Marketplace</span>
+          <span>Mercari</span>
+          <span>Reverb</span>
+          <span>StockX</span>
+          <span>Swappa</span>
+        </div>
+      </div>
+    </section>
+
+    <section id="sources" class="shell section" aria-labelledby="sources-heading">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Demo board sources</p>
+          <h2 id="sources-heading">Same seven-source queue</h2>
+        </div>
+        <p class="source-summary" data-source-summary>0 connected · 5 evaluating · 2 restricted · 7 tracked sources</p>
+      </div>
+      <div id="sourceGrid" class="source-grid" data-source-grid></div>
+    </section>
+  </main>
+  <footer class="shell footer">
+    <span>© <span id="year"></span> HUNTIQ</span>
+    <span>Public preview · Demo preview — no purchasing automation</span>
+  </footer>
+  <template id="dealTemplate">
+    <article class="deal-card">
+      <div class="deal-top">
+        <span class="retailer"></span>
+        <span class="badge"></span>
+      </div>
+      <h3></h3>
+      <div class="price-row">
+        <strong class="current"></strong>
+        <span class="reference"></span>
+      </div>
+      <div class="drop"></div>
+      <div class="penny-signal"></div>
+      <div class="stats">
+        <div><small>Market value</small><b class="market"></b></div>
+        <div><small>Est. profit</small><b class="profit"></b></div>
+        <div><small>ROI</small><b class="roi"></b></div>
+        <div><small>Flip Score</small><b class="flip"></b></div>
+      </div>
+      <div class="confidence">
+        <span></span>
+        <div class="confidence-meter" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <i></i>
+        </div>
+      </div>
+      <div class="card-actions">
+        <button class="watch-btn" type="button" aria-pressed="false"></button>
+        <button class="details-btn" type="button" aria-expanded="false">30/60/90 comps</button>
+      </div>
+      <div class="comp-panel" hidden></div>
+    </article>
+  </template>
+  <script src="./lib/quality.js" defer></script>
+  <script src="./lib/confirmation.js" defer></script>
+  <script src="./lib/engine.js" defer></script>
+  <script src="./lib/marketplace-cost-floor.js" defer></script>
+  <script src="./lib/marketplace-engine-bridge.js" defer></script>
+  <script src="./lib/risk.js" defer></script>
+  <script src="./lib/decision.js" defer></script>
+  <script src="./lib/history.js" defer></script>
+  <script src="./lib/history-query.js" defer></script>
+  <script src="./lib/baseline.js" defer></script>
+  <script src="./lib/history-anomaly.js" defer></script>
+  <script src="./lib/freshness.js" defer></script>
+  <script src="./lib/fulfillment.js" defer></script>
+  <script src="./lib/stress.js" defer></script>
+  <script src="./lib/basket-promotions.js" defer></script>
+  <script src="./lib/multibuy-promotions.js" defer></script>
+  <script src="./lib/acquisition-cost.js" defer></script>
+  <script src="./lib/channel-economics.js" defer></script>
+  <script src="./lib/resale-history.js" defer></script>
+  <script src="./lib/source-reliability.js" defer></script>
+  <script src="./lib/evidence-gate.js" defer></script>
+  <script src="./lib/capital-velocity.js" defer></script>
+  <script src="./lib/unit-exposure.js" defer></script>
+  <script src="./lib/partial-liquidation.js" defer></script>
+  <script src="./lib/resale-decay.js" defer></script>
+  <script src="./lib/marketplace-late-sale.js" defer></script>
+  <script src="./lib/marketplace-uncertainty.js" defer></script>
+  <script src="./lib/opportunity-evaluator.js" defer></script>
+  <script src="./lib/pwa-opportunity.js" defer></script>
+  <script src="./lib/resale-outcome.js" defer></script>
+  <script src="./lib/matching.js" defer></script>
+  <script src="./lib/comp-quality.js" defer></script>
+  <script src="./lib/price-consensus.js" defer></script>
+  <script src="./lib/snapshot-store.js" defer></script>
+  <script src="./lib/alerts.js" defer></script>
+  <script src="./lib/pwa-marketplace-economics.js" defer></script>
+  <script src="./lib/marketplace-alert-bridge.js" defer></script>
+  <script src="./lib/consensus-alerts.js" defer></script>
+  <script src="./lib/alert-stress.js" defer></script>
+  <script src="./lib/alert-outcome.js" defer></script>
+  <script src="./lib/markdown.js" defer></script>
+  <script src="./lib/adapters.js" defer></script>
+  <script src="./lib/pilot.js" defer></script>
+  <script src="./lib/pwa-data-state.js" defer></script>
+  <script src="./lib/deal-coach.js" defer></script>
+  <script src="./lib/opportunity-ranking.js" defer></script>
+  <script src="./app.js" defer></script>
+  <script src="./lib/deal-coach-runtime.js" defer></script>
+  <script src="./lib/pwa-runtime.js" defer></script>
+</body>
+</html>
