@@ -1,0 +1,123 @@
+name: HUNTIQ autonomous task bootstrap
+
+on:
+  issues:
+    types:
+      - opened
+
+permissions:
+  contents: read
+  issues: read
+
+jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      authorized: ${{ steps.authorize.outputs.authorized }}
+    steps:
+      - name: Authorize OWNER AI build issue using GitHub API state
+        id: authorize
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          issue_json="$(gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER")"
+          association="$(jq -r '.author_association' <<<"$issue_json")"
+          title="$(jq -r '.title' <<<"$issue_json")"
+          if [[ "$association" == 'OWNER' && "$title" == '[AI BUILD]'* ]]; then
+            echo 'authorized=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'authorized=false' >> "$GITHUB_OUTPUT"
+          fi
+
+  bootstrap:
+    needs: authorize
+    if: needs.authorize.outputs.authorized == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - name: Checkout trusted main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ github.token }}
+
+      - name: Re-authorize issue and create autonomous work branch
+        id: branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          issue_json="$(gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER")"
+          association="$(jq -r '.author_association' <<<"$issue_json")"
+          issue_title="$(jq -r '.title' <<<"$issue_json")"
+          issue_body="$(jq -r '.body // "No issue body provided."' <<<"$issue_json")"
+          [[ "$association" == 'OWNER' && "$issue_title" == '[AI BUILD]'* ]] || {
+            echo '::error::Issue authorization changed after the read-only preflight.'
+            exit 1
+          }
+
+          branch="ai/issue-${ISSUE_NUMBER}-${GITHUB_RUN_ID}"
+          title_sha256="$(printf '%s' "$issue_title" | sha256sum | awk '{print $1}')"
+          git config user.name "HUNTIQ Autonomous Agent"
+          git config user.email "huntiqapp-tech@users.noreply.github.com"
+          git checkout -b "$branch"
+          mkdir -p .huntiq/tasks
+          {
+            echo "status: pending"
+            echo "issue: ${ISSUE_NUMBER}"
+            echo "bootstrap_run: ${GITHUB_RUN_ID}"
+            echo "bootstrap_author_association: OWNER"
+            echo "bootstrap_title_sha256: ${title_sha256}"
+            echo "title: ${issue_title}"
+            echo ""
+            echo "## Task"
+            printf '%s\n' "$issue_body"
+            echo ""
+            echo "## Guardrails"
+            echo "- Never merge main."
+            echo "- Never add, expose, or rotate credentials."
+            echo "- Do not weaken customer evidence authority, resale-comps integrity, price-history isolation, promotion/rebate handling, or affiliate-neutral ranking."
+            echo "- Run the explicit HUNTIQ invariant gate and the full test suite before declaring implementation complete."
+          } > .huntiq/tasks/current.md
+          git add .huntiq/tasks/current.md
+          git commit -m "chore: bootstrap autonomous task #${ISSUE_NUMBER}"
+          git push origin "$branch"
+          echo "branch=$branch" >> "$GITHUB_OUTPUT"
+          printf '%s' "$issue_title" > "$RUNNER_TEMP/issue-title.txt"
+
+      - name: Open draft implementation PR
+        id: pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          BRANCH: ${{ steps.branch.outputs.branch }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          issue_title="$(gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER" --jq '.title')"
+          [[ "$issue_title" == '[AI BUILD]'* ]] || exit 1
+          title="${issue_title#\[AI BUILD\] }"
+          body="$(printf 'Autonomous implementation for #%s.\n\nThe PR must pass the explicit HUNTIQ invariant gate, the full test suite, and the Claude review gate. Auto-merge is disabled; PM approval remains the final gate.\n\nCloses #%s\n' "$ISSUE_NUMBER" "$ISSUE_NUMBER")"
+          url="$(gh pr create --repo "$GITHUB_REPOSITORY" --base main --head "$BRANCH" --draft --title "AI: $title" --body "$body")"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+
+      - name: Link task to issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          PR_URL: ${{ steps.pr.outputs.url }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh issue comment "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --body "Autonomous build started: $PR_URL"
