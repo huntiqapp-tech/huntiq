@@ -40,7 +40,7 @@ jobs:
           fetch-depth: 0
           token: ${{ github.token }}
 
-      - name: Create autonomous work branch and task packet
+      - name: Create autonomous work branch and immutable task snapshot
         if: steps.authorize.outputs.authorized == 'true'
         id: branch
         env:
@@ -51,6 +51,7 @@ jobs:
         run: |
           set -euo pipefail
           branch="ai/issue-${ISSUE_NUMBER}-${GITHUB_RUN_ID}"
+          title_sha256="$(printf '%s' "$ISSUE_TITLE" | sha256sum | awk '{print $1}')"
           git config user.name "HUNTIQ Autonomous Agent"
           git config user.email "huntiqapp-tech@users.noreply.github.com"
           git checkout -b "$branch"
@@ -58,6 +59,9 @@ jobs:
           {
             echo "status: pending"
             echo "issue: ${ISSUE_NUMBER}"
+            echo "bootstrap_run: ${GITHUB_RUN_ID}"
+            echo "bootstrap_author_association: OWNER"
+            echo "bootstrap_title_sha256: ${title_sha256}"
             echo "title: ${ISSUE_TITLE}"
             echo ""
             echo "## Task"
@@ -86,7 +90,8 @@ jobs:
         run: |
           set -euo pipefail
           title="${ISSUE_TITLE#\[AI BUILD\] }"
-          url="$(gh pr create --repo "$GITHUB_REPOSITORY" --base main --head "$BRANCH" --draft --title "AI: $title" --body "Autonomous implementation for #${ISSUE_NUMBER}.\n\nThe PR must pass HUNTIQ tests and the Claude review gate. Auto-merge is disabled; PM approval remains the final gate.\n\nCloses #${ISSUE_NUMBER}")"
+          body="$(printf 'Autonomous implementation for #%s.\n\nThe PR must pass HUNTIQ tests and the Claude review gate. Auto-merge is disabled; PM approval remains the final gate.\n\nCloses #%s\n' "$ISSUE_NUMBER" "$ISSUE_NUMBER")"
+          url="$(gh pr create --repo "$GITHUB_REPOSITORY" --base main --head "$BRANCH" --draft --title "AI: $title" --body "$body")"
           echo "url=$url" >> "$GITHUB_OUTPUT"
 
       - name: Link task to issue
