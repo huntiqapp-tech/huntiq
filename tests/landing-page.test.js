@@ -60,7 +60,8 @@ assert(app.includes("setAttribute('aria-pressed'") && app.includes("setAttribute
 assert(app.includes('comp-panel-${d.id}') && app.includes('announce('), 'unique details IDs and live announcements');
 assert(app.includes('sourceSummaryText') && app.includes('[data-source-grid]'), 'source counts render from one array');
 
-assert(css.includes('.skip-link') && css.includes(':focus-visible') && css.includes('prefers-reduced-motion'), 'a11y CSS primitives present');
+assert(css.includes('.status.evaluating') && css.includes('.status.restricted') && css.includes('.status.connected'), 'status styles cover Connected/Evaluating/Restricted');
+assert(!css.includes('.status.pending') && !css.includes('.status.ready') && !css.includes('.status.research'), 'legacy source-status CSS classes are gone');
 assert(css.includes('overflow-x:clip') && !css.includes('100vw'), 'overflow guarded without 100vw');
 assert(css.includes('--target:44px') && css.includes('min-height:var(--target)'), '44px touch targets');
 assert(css.includes('grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr)'), 'two-column hero');

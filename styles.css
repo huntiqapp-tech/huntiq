@@ -315,9 +315,9 @@ img,svg,video{max-width:100%;height:auto}
 }
 .status-mark.evaluating{background:transparent;border-style:dashed}
 .status-mark.restricted{border-radius:2px;background:transparent}
-.status.pending,.status.evaluating{background:rgba(255,207,102,.12);color:var(--warn)}
-.status.ready,.status.connected{background:rgba(53,224,177,.12);color:var(--green)}
-.status.research,.status.restricted{background:rgba(143,163,155,.12);color:#d5e0db}
+.status.evaluating{background:rgba(255,207,102,.12);color:var(--warn)}
+.status.connected{background:rgba(53,224,177,.12);color:var(--green)}
+.status.restricted{background:rgba(143,163,155,.12);color:#d5e0db}
 .live-dot{color:var(--green);font-weight:800}
 .faq-list{display:grid;gap:10px}
 .faq-item{border:1px solid var(--line);border-radius:16px;background:#08100d}
