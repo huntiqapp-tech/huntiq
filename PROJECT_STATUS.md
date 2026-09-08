@@ -3,11 +3,25 @@
 Last established from repository and product handoff: 2026-09-07. This is the living handoff and must be updated after meaningful work.
 
 ## CURRENT VERSION
-- Package: **0.9.110**
-- Public PWA preview is functional but still intentionally uses demonstration opportunity data until rights-cleared live integrations are connected.
-- Offline cache: **`huntiq-public-v110`**.
+- Package: **0.9.111**
+- Public PWA preview is functional and still uses an explicit demonstration fallback until a server injects a rights-cleared `HUNTIQ_CUSTOMER_FEED`.
+- Offline cache: **`huntiq-public-v111`**.
+- Customer app contract: `docs/customer-app-contract.md` (**frozen** for the parallel ingestion track).
+- Integration handoff: `docs/customer-feed-integration-handoff.md`.
+- Preview vs production / health: `docs/release-readiness.md` and `health.json`.
+- Verification: repair in progress; merge remains blocked until the rebased branch passes the full local and GitHub workflows with a clean review.
+
+## v0.9.111 — customer-facing app boundary (2026-09-07)
+- Replaced hard-coded-only PWA coupling with `lib/customer-app-boundary.js`. The app consumes a server-owned customer feed envelope (`HUNTIQ_CUSTOMER_FEED` or `HUNTIQ_CUSTOMER_OPPORTUNITIES`) and falls back to labeled demo data.
+- Every visible card shows LIVE / CACHED / DELAYED / DEMO DATA plus freshness, retailer, and store/ZIP/channel provenance. Unlabeled, shadow, validation-only, and incomplete-authority rows are withheld. Alerts stay suppressed unless the feed enables them for fresh validated live rows.
+- Watchlist persistence uses `lib/safe-storage.js` so corrupt JSON, non-arrays, hostile keys, quota errors, and SecurityError cannot brick startup.
+- Service worker uses `lib/pwa-cache-manifest.js`. Navigation fallback is navigation-only; asset misses return 404 instead of `index.html`; optional assets may fail without blocking install.
+- Zero-network staging: `/?huntiq-mode=fixture` loads `lib/customer-feed-fixture.js`.
+- Browser E2E + static accessibility coverage added (`tests/pwa-e2e.test.js`, `tests/pwa-a11y-static.test.js`). No new npm dependencies.
+- Scraper-provider internals were not modified. The Scraper Engineer interface is the existing customer live payload plus the envelope documented in `docs/customer-app-contract.md`.
 
 ## DONE / PRESENT
+- **Live ingestion runner (2026-09-07):** `lib/ingestion-runner.js` is the unified server-only entry for explicit Bright Data, RetailerAPI, UPCitemdb identity, and scraper jobs. Canonical observation contract is `docs/live-observation-contract.md` (`quantity`/`inventory` aliases, structured `source` plus scalar provenance, `zip`/`zipcode`, `online`/`local` channel). Live provider errors fail the entire run closed even when another job returns partial evidence, and history keys isolate channel plus store/ZIP/online location. Merge handoff: `docs/merge-handoff-live-ingestion-2026-09-07.md`. Unattended entry points: `npm run ingest:preflight`, `ingest:dry-run`, `ingest:once`, `ingest:schedule`. Schema-only audit: `db/086_live_ingestion_runs.sql`. PWA files were not changed.
 - **v0.9.110 no-scrape ENP Calculator MVP:** `calculator.html` is a phone-first public PWA page for user-pasted buy prices and Amazon/eBay comps. It returns ENP (hero metric, never MSRP % off), acquisition-basis ROI, max buy that still hits target ROI **and** min profit, headroom, break-even sell, optional downside ENP, and BUY/MAYBE/PASS. Last 20 runs persist in localStorage. Soft gate: 3 free calculations per local calendar day, then a `$9 unlock — coming soon` Gumroad stub (no Stripe). No Keepa, Bright Data, Oxylabs, RetailerAPI, or other live fetches. Demo opportunity cards are unchanged. Math lives in `lib/enp-calculator.js` with `tests/enp-calculator.test.js`. Existing `lib/decision.js` max-buy was not reused because it mixes acquire shipping with outbound/FBA fees.
 - Mobile-first installable PWA with offline service worker and browser-persistent watchlist.
 - Strict completed-sale resale aggregation in `lib/resale-history.js`; active/asking/cancelled rows cannot contaminate sold-history metrics.
@@ -39,7 +53,6 @@ Last established from repository and product handoff: 2026-09-07. This is the li
 - **v0.9.59 explainable Deal Coach:** `lib/deal-coach.js` converts existing price-history coverage, anomaly confidence, completed-sale depth, resale confidence, liquidity, base/downside/risk-adjusted economics, safe max-buy and alert state into a deterministic BUY/WATCH/SKIP explanation. `lib/deal-coach-runtime.js` renders the explanation on PWA opportunity cards and forces demonstration rows to WATCH so demo evidence cannot look like a live recommendation.
 - **v0.9.60 inherited mainline:** unified opportunity-confidence scoring and Deal Coach display are present from direct mainline development. Demonstration data remains capped and alert-ineligible. Additional scoring work is paused while the rights-cleared retailer scraper and authenticated RetailerAPI validation are the priority.
 - **v0.9.61 retailer scraper foundation:** the server-only scraper accepts only explicit HTTPS host allowlists, rejects credentials/private targets/redirects/zero prices/stale or future observations, and extracts public JSON-LD or price metadata into canonical shadow observations. A dedicated Home Depot adapter preserves store/ZIP/online identity; the batch runner enforces usage limits, deduplicates observations, records bounded raw provenance and hard-disables alerts and redistribution.
-- **Live ingestion runner (2026-09-07):** `lib/ingestion-runner.js` is the unified server-only entry for explicit Bright Data, RetailerAPI, UPCitemdb identity, and scraper jobs. Canonical observation contract is `docs/live-observation-contract.md` (`quantity`/`inventory` aliases, structured `source` plus scalar provenance, `zip`/`zipcode`, `online`/`local` channel). Live provider errors fail the entire run closed even when another job returns partial evidence, and history keys isolate channel plus store/ZIP/online location. Merge handoff: `docs/merge-handoff-live-ingestion-2026-09-07.md`. Unattended entry points: `npm run ingest:preflight`, `ingest:dry-run`, `ingest:once`, `ingest:schedule`. Schema-only audit: `db/086_live_ingestion_runs.sql`. PWA files were not changed.
 - **v0.9.62 cross-source evidence agreement:** `lib/evidence-agreement.js` scores agreement between corroborating retailer prices, resale estimates and profit/ROI scenarios. Large retailer-price spread, resale-source spread or sign-changing ROI outcomes create explicit blockers; unified opportunity confidence fails closed and urgent alerts are suppressed rather than averaging conflicts away. The Deal Coach can surface the agreement score on opportunity cards.
 - **v0.9.63-v0.9.76 inherited mainline:** additional opportunity range, execution confidence, freshness, ranking, momentum, clearance, inventory and resale-risk models are present. These releases are retained, but further scoring/risk work is paused. Provider validation and the customer-facing live-data path are the approved priorities.
 - **v0.9.77 provider validation reset:** Bright Data Home Depot triggering now has a bounded server-only smoke path. It requires an explicit product target, blocks redirects, rejects malformed trigger responses, prints no token or request headers, and remains shadow-only with alerts disabled.
@@ -91,7 +104,6 @@ Last established from repository and product handoff: 2026-09-07. This is the li
 - **v0.9.59 adds `tests/deal-coach.test.js` covering strong-buy evidence, thin-history/resale cautions, safe-max-buy violations, alert explanation and mandatory demo WATCH behavior.**
 - **v0.9.60 adds `tests/opportunity-confidence.test.js` covering high-confidence live evidence, thin-history and weak-resale blockers, and mandatory demo alert suppression.**
 - **v0.9.61 adds `tests/retailer-scraper.test.js` covering URL/credential protections, structured-data parsing, canonical provenance, Home Depot channel identity, freshness rejection, batch deduplication and hard alert suppression.**
-- **Live ingestion tests (2026-09-07):** `tests/ingestion-runner.test.js`, `tests/ingestion-preflight.test.js`, `tests/ingestion-schedule.test.js`, and `tests/upcitemdb.test.js` cover dry-run, success, malformed payloads, missing credentials, rate limits, timeouts, duplicate/idempotent runs, overlap locks, provider errors, partial failures, record caps and secret redaction. Bright Data tests now cover snapshot identity, `starting`/`running`/`ready`/`failed`, `error_message` preservation, poll ceilings and HTTP timeouts.
 - **v0.9.62 adds `tests/evidence-agreement.test.js` covering aligned evidence, retailer-price conflict, resale-source conflict, profit-sign disagreement, confidence downgrade and alert suppression. GitHub Actions HUNTIQ tests passed before merge.**
 
 ## RETAILER / MARKETPLACE RESEARCH COMPLETED
@@ -124,8 +136,9 @@ Last established from repository and product handoff: 2026-09-07. This is the li
 - Public-page scraper output remains ephemeral, non-redistributable and validation-only until retailer terms and retention rights are explicitly approved.
 
 ## NEXT — HIGH PRIORITY
-- Credential-owned blocker: this runtime does not have `RETAILERAPI_KEY`, `BRIGHTDATA_API_TOKEN`, `BRIGHTDATA_TEST_URL`, or `UPCITEMDB_USER_KEY`. After those names are present in trusted server-side secret storage, run at most one sanitized smoke per provider (`npm run smoke:retailerapi`, `npm run smoke:brightdata`) and keep alerts disabled.
 - Run the Home Depot adapter only in a trusted server runtime after an explicit terms/robots review; compare sanitized shadow output against the source page before considering any retention or customer display.
+- Make the existing RetailerAPI key available to the trusted server runtime as `RETAILERAPI_KEY` and run `npm run smoke:retailerapi`; never place the key in the public repository or browser bundle.
+- Make the Bright Data token available to the trusted server runtime as `BRIGHTDATA_API_TOKEN`, set an explicit `BRIGHTDATA_TEST_URL` and optional five-digit `BRIGHTDATA_TEST_ZIP`, then run `npm run smoke:brightdata`. The smoke run is capped at one record and must remain shadow-only until its sanitized snapshot is manually checked.
 - Manually validate a representative RetailerAPI sample against source retailer pages before promoting shadow observations or enabling alerts.
 - Run authenticated RetailerAPI lookup and manual source-page validation, then change only approved observations from `shadow-live` to validated history; keep alerts disabled until that evidence is recorded.
 - After authenticated RetailerAPI smoke/manual validation, pass approved assessments through `buildCustomerLivePayload` and inject its opportunities as `HUNTIQ_CUSTOMER_OPPORTUNITIES`; keep `enableAlerts` false through the first validation pass.
@@ -134,3 +147,4 @@ Last established from repository and product handoff: 2026-09-07. This is the li
 - Connect a legitimate completed-sale provider before claiming live 30/60/90 sold history.
 - Persist production evaluator/history/promotion/resale/source/alert/Deal Coach/evidence-agreement snapshots once backend storage is connected.
 - Expand actual notification delivery after backend/account architecture is selected.
+

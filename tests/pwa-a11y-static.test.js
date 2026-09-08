@@ -1,0 +1,30 @@
+'use strict';
+const assert=require('assert');
+const fs=require('fs');
+const path=require('path');
+
+const html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
+const css=fs.readFileSync(path.join(__dirname,'..','styles.css'),'utf8');
+
+assert.match(html,/lang="en"/);
+assert.match(html,/class="skip-link"/);
+assert.match(html,/role="toolbar"/);
+assert.match(html,/aria-label="Opportunity filters"/);
+assert.match(html,/aria-pressed/);
+assert.match(html,/id="dealSearch"/);
+assert.match(html,/for="dealSearch"/);
+assert.match(html,/id="offlineBanner"/);
+assert.match(html,/addEventListener\('offline'/);
+assert.match(html,/aria-live="polite"/);
+assert.match(html,/aria-expanded="false"/);
+assert.match(html,/data-filter="live"/);
+assert.match(html,/data-filter="cached"/);
+assert.match(html,/data-filter="delayed"/);
+assert.match(html,/data-filter="demo"/);
+assert.match(css,/:focus-visible/);
+assert.match(css,/prefers-reduced-motion:reduce/);
+assert.match(css,/overflow-x:hidden/);
+assert.match(css,/max-width:390px/);
+assert.match(css,/max-width:760px/);
+assert.doesNotMatch(html,/tabindex="[1-9]/);
+console.log('pwa a11y-static tests passed');
