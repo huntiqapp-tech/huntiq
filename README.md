@@ -15,7 +15,9 @@ Public-facing HUNTIQ PWA preview for retail deal discovery and resale intelligen
 - No-scrape ENP Calculator (`calculator.html`) for user-pasted buy prices and comps — ENP, max buy, ROI, BUY/MAYBE/PASS; 3 free local runs per day
 
 ## Data notice
-The public preview currently uses clearly labeled demonstration opportunity data. Live retailer feeds, credentials, databases and private backend services are intentionally not stored in this public repository.
+The public preview currently uses clearly labeled demonstration opportunity data unless a trusted server injects `HUNTIQ_CUSTOMER_FEED`. Live retailer feeds, credentials, databases and private backend services are intentionally not stored in this public repository. The browser never calls RetailerAPI, Bright Data, or scraper internals.
+
+Zero-network staging: open `/?huntiq-mode=fixture`. Health metadata is in `health.json`. Preview vs production and remaining credential-only blockers are in `docs/release-readiness.md`. The frozen Scraper Engineer contract is `docs/customer-app-contract.md`. Integration handoff: `docs/customer-feed-integration-handoff.md`.
 
 The server-only RetailerAPI shadow adapter is documented in `docs/retailerapi-live-ingestion.md`. It normalizes validated online observations with provenance, rejects stale or malformed provider cells, deduplicates observations and keeps customer alerts disabled until live validation is complete.
 

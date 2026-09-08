@@ -14,7 +14,7 @@ HUNTIQ must keep source observations, derived history, resale evidence, economic
 6. **Capital velocity** — estimate days-to-sell, sell-through, profit/ROI per 30 days, liquidity band, and capital-efficiency score. The customer feed uses this to prefer faster capital turns among otherwise-qualified deals.
 7. **Evidence gate** — suppress alerts when price history, anomaly confidence, resale evidence, freshness, downside economics, or liquidity is insufficient.
 8. **Alert delivery state** — `lib/alert-dedupe.js` and `db/014_alert_delivery_state.sql` prevent unchanged opportunities from generating repeated notifications while allowing material price/profit improvements through the cooldown.
-9. **Customer presentation** — the PWA may simplify the output into HUNTIQ Score / BUY-WAIT-SKIP / profit / ROI / confidence, but it must not silently erase source freshness, blockers, or demo-vs-live provenance.
+9. **Customer presentation** — the PWA may simplify the output into HUNTIQ Score / BUY-WAIT-SKIP / profit / ROI / confidence, but it must not silently erase source freshness, blockers, or demo-vs-live provenance. Customer-visible rows enter the PWA only through the server-owned `HUNTIQ_CUSTOMER_FEED` envelope or the explicit demo/fixture fallback documented in `docs/customer-app-contract.md`.
 
 ## Hard boundaries
 - Affiliate payout is monetization metadata and must not affect opportunity ranking.
