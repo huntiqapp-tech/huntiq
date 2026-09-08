@@ -1,5 +1,5 @@
 const assert = require('assert');
-const { buildHistoryIndex, priorPrices, observationContext, evaluateLiveObservation, evaluateLiveAlert, toObservationRow } = require('../lib/live-history');
+const { buildHistoryIndex, priorPrices, observationContext, evaluateLiveObservation, evaluateLiveAlert, historyKey, toObservationRow } = require('../lib/live-history');
 
 const base = { retailer:'home depot', productId:'319386960', sku:'1007172275', storeId:'4129', source:{provider:'bright-data', rightsClass:'internal-only'} };
 const observations = [
@@ -36,7 +36,10 @@ assert.ok(result.economics.roi > 0, 'live observation should flow into ROI calcu
 assert.ok(result.flipScore > 0, 'live observation should reach HUNTIQ scoring');
 
 const alertResult = evaluateLiveAlert(observations[3], {...options, alertOptions:{now:new Date('2026-09-05T12:00:00Z').getTime()}});
-assert.equal(alertResult.historyKey, 'home depot|319386960|store:4129');
+assert.equal(alertResult.historyKey, 'home depot|319386960|local|store:4129');
+
+const onlineSameProduct = { ...observations[3], storeId: null, zip: null, channel: 'online' };
+assert.notEqual(historyKey(observations[3]), historyKey(onlineSameProduct), 'online and store-local history must remain isolated');
 assert.ok(alertResult.notification && alertResult.notification.decision, 'live pipeline should always produce an alert decision');
 assert.ok(alertResult.notification.decision.reasons.includes('stale-observation'), 'stale live data must not generate a notification');
 assert.equal(alertResult.notification.notify, false);
@@ -47,5 +50,7 @@ assert.equal(row.store_id, '4129');
 assert.equal(row.provider, 'bright-data');
 assert.equal(row.rights_class, 'internal-only');
 assert.ok(row.location_key.includes('4129'));
+assert.equal(toObservationRow({ ...observations[3], source: { ...base.source, evidenceUrl: 'https://www.homedepot.com/p/x' } }).source_url, 'https://www.homedepot.com/p/x');
+assert.equal(toObservationRow({ ...observations[3], quantity: null, inventory: 7 }).quantity, 7);
 
 console.log('live-history tests passed');

@@ -27,5 +27,19 @@ The server-only customer payload builder requires an authenticated lookup result
 
 The server-only retailer scraper foundation extracts public JSON-LD or price metadata only from explicit HTTPS host allowlists. Its Home Depot adapter preserves store/ZIP/online identity and emits canonical shadow observations with evidence URL, extractor, retrieval time, retention policy and redistribution state. Redirects, credentials, private/IP targets, stale observations and unsupported retailers fail closed; batch output is deduplicated and cannot alert.
 
+## Live ingestion (server-only)
+
+The unified ingestion runner, unattended one-shot/schedule entry points, and operations notes live in `docs/live-ingestion-operations.md`. The canonical observation field contract (quantity vs inventory, structured `source`, ZIP/channel keys) is `docs/live-observation-contract.md`. Defaults are dry-run, explicit provider selection, conservative record caps, overlap locking, bounded timeouts/retries, and shadow/internal output with alerts disabled.
+
+```sh
+npm run ingest:preflight
+npm run ingest:dry-run -- --providers retailerapi,brightdata,upcitemdb --jobs-file config/ingestion-jobs.example.json
+npm test
+```
+
+Live provider calls require trusted runtime secrets named `RETAILERAPI_KEY`, `BRIGHTDATA_API_TOKEN`, `BRIGHTDATA_TEST_URL`, and `UPCITEMDB_USER_KEY`. Preflight prints those names and configured/missing status only — never values. UPCitemdb is product identity, not retailer-price verification.
+
+Rollback: keep `INGEST_MODE=dry-run`, stop any cron/systemd unit, and do not promote shadow observations.
+
 ## Security
 Never commit API keys, OAuth secrets, access tokens, database credentials or private backend configuration to this repository.

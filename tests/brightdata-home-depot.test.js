@@ -10,7 +10,8 @@ const {
   downloadSnapshotRecords,
   collectHomeDepotShadowSnapshot,
   safeRequestLog,
-  extractPrice
+  extractPrice,
+  HARD_MAX_POLLS
 } = require('../lib/brightdata-home-depot');
 const { locationKey } = require('../lib/live-ingestion');
 
@@ -110,6 +111,56 @@ assert.notEqual(locationKey(normalized[0]), locationKey(normalized[1]), 'differe
   assert.equal(lifecycle.redistributable, false);
   assert.equal(lifecycle.historyPromotionAllowed, false);
   assert.equal(lifecycle.manualSourceCheckRequired, true);
+
+  await assert.rejects(() => getSnapshotProgress({
+    apiToken: 'test-secret', snapshotId: 's_test123',
+    fetchImpl: async () => ({ ok: true, status: 200, json: async () => ({ status: 'ready' }) })
+  }), /snapshot identity is required/);
+
+  const starting = await getSnapshotProgress({
+    apiToken: 'test-secret', snapshotId: 's_test123',
+    fetchImpl: async () => ({ ok: true, status: 200, json: async () => ({ snapshot_id: 's_test123', status: 'starting' }) })
+  });
+  assert.equal(starting.status, 'starting');
+  assert.equal(starting.ready, false);
+
+  const failed = await getSnapshotProgress({
+    apiToken: 'test-secret', snapshotId: 's_test123',
+    fetchImpl: async () => ({ ok: true, status: 200, json: async () => ({ snapshot_id: 's_test123', status: 'failed', error_message: 'provider exploded' }) })
+  });
+  assert.equal(failed.failed, true);
+  assert.equal(failed.errorMessage, 'provider exploded');
+
+  let pollCalls = 0;
+  const bounded = await collectHomeDepotShadowSnapshot({
+    apiToken: 'test-secret', products: [products[0]], maxPolls: 999, pollDelayMs: 0,
+    fetchImpl: async (url) => {
+      if (String(url).includes('/trigger')) return { ok: true, status: 200, json: async () => ({ snapshot_id: 's_pollbound' }) };
+      pollCalls += 1;
+      return { ok: true, status: 200, json: async () => ({ snapshot_id: 's_pollbound', dataset_id: HOME_DEPOT_DATASET_ID, status: 'running' }) };
+    }
+  });
+  assert.equal(bounded.ready, false);
+  assert.equal(bounded.validationState, 'shadow-running');
+  assert.equal(pollCalls, HARD_MAX_POLLS);
+
+  const failedCollect = await collectHomeDepotShadowSnapshot({
+    apiToken: 'test-secret', products: [products[0]],
+    fetchImpl: async (url) => {
+      if (String(url).includes('/trigger')) return { ok: true, status: 200, json: async () => ({ snapshot_id: 's_failed123' }) };
+      if (String(url).includes('/snapshot/')) throw new Error('failed snapshots must not download');
+      return { ok: true, status: 200, json: async () => ({ snapshot_id: 's_failed123', status: 'failed', error_message: 'terminal failure' }) };
+    }
+  });
+  assert.equal(failedCollect.ok, false);
+  assert.equal(failedCollect.status, 'failed');
+  assert.equal(failedCollect.errorMessage, 'terminal failure');
+  assert.equal(failedCollect.alertsEnabled, false);
+
+  await assert.rejects(() => collectHomeDepotShadowSnapshot({
+    apiToken: 'test-secret', products: [products[0]], timeoutMs: 250, maxPolls: 1,
+    fetchImpl: async () => new Promise(() => {})
+  }), /timed out/);
 
   console.log('brightdata-home-depot tests passed');
 })().catch(error => {
