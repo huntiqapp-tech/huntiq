@@ -34,6 +34,7 @@ The public repository already contains a working public-facing PWA preview. The 
 - Persistent browser watchlist using localStorage.
 - Retailer / marketplace integration-status presentation.
 - Installable PWA manifest and offline service worker.
+- Server-only live ingestion runner (`lib/ingestion-runner.js`) with dry-run default, overlap lock, record caps, and shadow/internal output. See `docs/live-ingestion-operations.md`.
 
 The current top-level project includes `index.html`, `calculator.html`, `calculator.js`, `app.js`, `styles.css`, `manifest.webmanifest`, `sw.js`, `db/`, `lib/`, `docs/`, `tests/`, and `.github/`. Inspect these before proposing architecture changes. The ENP Calculator is a no-scrape, user-comp tool (`lib/enp-calculator.js`) and must not grow Keepa, Bright Data, Oxylabs, or other paid lookup dependencies.
 

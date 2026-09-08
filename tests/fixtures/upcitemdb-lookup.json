@@ -1,0 +1,32 @@
+{
+  "code": "OK",
+  "total": 1,
+  "offset": 0,
+  "items": [
+    {
+      "ean": "0012345678905",
+      "title": "Sanitized identity fixture drill",
+      "upc": "012345678905",
+      "gtin": "0012345678905",
+      "description": "Identity-only catalog fixture. Not a retailer price.",
+      "brand": "FixtureBrand",
+      "model": "FX-18",
+      "category": "Hardware > Tools",
+      "currency": "USD",
+      "lowest_recorded_price": 19.99,
+      "highest_recorded_price": 89.99,
+      "images": ["https://example.test/image.jpg"],
+      "offers": [
+        {
+          "merchant": "Example Market",
+          "domain": "example.test",
+          "price": 24.99,
+          "list_price": 39.99,
+          "condition": "New",
+          "availability": "",
+          "link": "https://example.test/offer"
+        }
+      ]
+    }
+  ]
+}

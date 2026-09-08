@@ -1,0 +1,18 @@
+{
+  "providers": ["retailerapi", "brightdata", "upcitemdb"],
+  "jobs": [
+    {
+      "provider": "retailerapi",
+      "identifier": "19667262713"
+    },
+    {
+      "provider": "brightdata",
+      "url": "https://www.homedepot.com/p/example/100000001",
+      "zip": "18360"
+    },
+    {
+      "provider": "upcitemdb",
+      "upc": "012345678905"
+    }
+  ]
+}

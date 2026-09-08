@@ -12,7 +12,7 @@ const { collectHomeDepotShadowSnapshot } = require('../lib/brightdata-home-depot
   const result = await collectHomeDepotShadowSnapshot({
     apiToken,
     products: [{ url, zip }],
-    budget: { maxPerRun: 1, maxPerMonth: 5000 },
+    budget: { maxRecordsPerRun: 1, maxRecordsPerMonth: 5000 },
     maxPolls: 6,
     pollDelayMs: 10000
   });

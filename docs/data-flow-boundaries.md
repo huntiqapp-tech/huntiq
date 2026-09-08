@@ -1,12 +1,12 @@
 # HUNTIQ data-flow boundaries
 
-Updated: 2026-09-01
+Updated: 2026-09-07
 
 ## Purpose
 HUNTIQ must keep source observations, derived history, resale evidence, economics, scoring, and customer alerts separate enough that every recommendation can be audited and uncertain data cannot masquerade as fact.
 
 ## Production flow
-1. **Retailer observation ingestion** — normalize retailer, store/location, product identity, observed price, fulfillment/inventory state, source, and observation timestamp. Never blend store-local price observations into a national history series.
+1. **Retailer observation ingestion** — normalize retailer, store/location, product identity, observed price, fulfillment/inventory state, source, and observation timestamp using `docs/live-observation-contract.md`. Never blend store-local price observations into a national history series. Canonical `quantity` is shelf count (`inventory` is an alias). Canonical `source` is an object; string `source` exists only on explicit projectors.
 2. **Price-history persistence** — retain lawful observations according to the source's retention/license rules. `db/013_price_history_features.sql` derives sequential store/product history features such as previous price, prior-12 min/max/average, percentage drops, and preliminary markdown signals.
 3. **Anomaly layer** — compare the current observation with its own location-specific history and supporting price consensus. An anomaly is a model conclusion, not a raw retailer fact; preserve the evidence and freshness that produced it.
 4. **Resale evidence** — completed-sale comparables go to the strict sold-history path (`db/011_resale_comparables.sql`, `lib/resale-history.js`). Active/asking listings may inform liquidity and market competition but must never be represented as completed sales.
