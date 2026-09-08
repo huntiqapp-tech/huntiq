@@ -72,6 +72,20 @@ function brightFetch({ status = 'ready', errorMessage, hang = false, calls } = {
   assert.equal(dryRun.historyPromotionAllowed, false);
   assert.equal(dryRun.processedJobs.length, 3);
 
+  const unselected = await runIngestion({
+    providers: ['retailerapi'],
+    jobs: [
+      { provider: 'retailerapi', identifier: '19667262713' },
+      { provider: 'upcitemdb', upc: '012345678905' }
+    ],
+    mode: 'dry-run',
+    lockPath: path.join(lockDir, 'unselected.lock'),
+    fetchImpl: async () => { throw new Error('dry-run must not fetch'); }
+  });
+  assert.equal(unselected.ok, true);
+  assert.equal(unselected.skippedCount, 1);
+  assert.ok(unselected.rejected.some((row) => row.provider === 'upcitemdb' && row.reason === 'unselected-provider'));
+
   const success = await runIngestion({
     providers: ['retailerapi', 'upcitemdb'],
     jobs: [
@@ -120,6 +134,25 @@ function brightFetch({ status = 'ready', errorMessage, hang = false, calls } = {
   assert.equal(missing.failClosed, true);
   assert.equal(missing.ok, false);
   assert.equal(missing.requestCount, 0);
+
+  const mixedCredentials = await runIngestion({
+    providers: ['retailerapi', 'upcitemdb'],
+    jobs: [
+      { provider: 'retailerapi', identifier: '19667262713' },
+      { provider: 'upcitemdb', upc: '012345678905' }
+    ],
+    mode: 'live',
+    credentials: { retailerapiKey: 'retailer-secret-key' },
+    env: { RETAILERAPI_KEY: 'retailer-secret-key' },
+    lockPath: path.join(lockDir, 'mixed-credentials.lock'),
+    observedAt: '2026-09-02T19:00:00Z',
+    fetchImpl: retailerFetch()
+  });
+  assert.equal(mixedCredentials.ok, false);
+  assert.equal(mixedCredentials.failClosed, true);
+  assert.equal(mixedCredentials.partial, true);
+  assert.ok(mixedCredentials.observations.length > 0);
+  assert.ok(mixedCredentials.rejected.some((row) => row.provider === 'upcitemdb' && row.reason === 'missing-credentials'));
 
   const rateLimited = await runIngestion({
     providers: ['retailerapi'],
