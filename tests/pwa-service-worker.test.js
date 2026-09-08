@@ -45,7 +45,7 @@ class FakeCache{
   };
   sandbox.self=sandbox;
   sandbox.self.HUNTIQ_PWA_MANIFEST={
-    cache:'huntiq-public-v111',
+    cache:'huntiq-public-v112',
     required:['./','./index.html','./app.js'],
     optional:['./missing-optional.js']
   };
@@ -58,7 +58,7 @@ class FakeCache{
   let installPromise;
   listeners.install({waitUntil(promise){installPromise=promise;}});
   await installPromise;
-  const cache=cachesStore.get('huntiq-public-v111');
+  const cache=cachesStore.get('huntiq-public-v112');
   assert(cache.map.has('./index.html'),'required assets cache on install');
   assert(cache.map.has('./app.js'));
   assert(!cache.map.has('./missing-optional.js'),'optional missing assets must not fail install');

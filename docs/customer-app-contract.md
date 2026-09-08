@@ -1,6 +1,6 @@
 # Customer-facing PWA contract for the Scraper Engineer
 
-Updated: 2026-09-07 for HUNTIQ v0.9.111.
+Updated: 2026-09-08 for HUNTIQ v0.9.112.
 
 This is the stable interface between server-side scraper / RetailerAPI work and the public PWA. The browser never calls scraper internals, RetailerAPI, or Bright Data. Do not put provider tokens, cookies, or raw scraper payloads in this repository or in any client bundle.
 

@@ -1,6 +1,6 @@
 # HUNTIQ release readiness — preview vs production
 
-Updated: 2026-09-07 for v0.9.111.
+Updated: 2026-09-08 for v0.9.112.
 
 This document is a checklist, not a deployment credential store. Do not invent hosting accounts, API keys, or paid provider calls.
 
@@ -8,8 +8,8 @@ This document is a checklist, not a deployment credential store. Do not invent h
 
 | Check | Where | Expected |
 | --- | --- | --- |
-| Package version | `package.json` | `0.9.111` |
-| Offline cache name | `lib/pwa-cache-manifest.js` | `huntiq-public-v111` |
+| Package version | `package.json` | `0.9.112` |
+| Offline cache name | `lib/pwa-cache-manifest.js` | `huntiq-public-v112` |
 | Static health | `health.json` | same version/cache; `alertsEnabled: false`; `providerCallsFromClient: false` |
 | Service worker | `sw.js` | imports the cache manifest; navigation fallback only for navigations; asset misses return 404 |
 | Customer boundary | `lib/customer-app-boundary.js` | server envelope or demo/fixture fallback; no provider clients |

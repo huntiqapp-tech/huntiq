@@ -60,7 +60,8 @@ function evaluateDeal(d){
   const label=risk.stabilityAdjustedAnomalyLabel;
   const type=label==='Probable Error'?'error':label==='Extreme Deal'?'extreme':'watch';
   const engineAlert=HuntIQAlerts.shouldAlert(enriched);
-  const dataState=d.dataState||HuntIQDataState.classifyOpportunityData(d,{asOf:appFeed.asOf});
+  const dataState=HuntIQCustomerAppBoundary.revalidateCustomerDataState(d,{asOf:appFeed.asOf});
+  if(dataState.customerVisible!==true)throw new Error(`customer boundary revalidation failed: ${dataState.reason||'withheld'}`);
   const alert=HuntIQCustomerAppBoundary.suppressUnauthorizedAlert({...enriched,alert:engineAlert,customerAlertEligible:d.customerAlertEligible},dataState,appFeed.alertsEnabled);
   return{...enriched,...d,observedAt,timeline,type,label,economicClaimsAuthorized,
     market:economicClaimsAuthorized?evaluated.resale.marketValue:null,

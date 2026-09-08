@@ -1,4 +1,4 @@
-# Customer-feed integration handoff — v0.9.111
+# Customer-feed integration handoff — v0.9.112
 
 Status: **ready for the parallel ingestion track**. Do not wait for credentials, hosting, or a live deploy. The PWA contract is frozen; ingest against it.
 

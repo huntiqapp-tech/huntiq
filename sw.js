@@ -1,6 +1,6 @@
 importScripts('./lib/pwa-cache-manifest.js');
 const MANIFEST=self.HUNTIQ_PWA_MANIFEST||{};
-const CACHE=MANIFEST.cache||'huntiq-public-v111';
+const CACHE=MANIFEST.cache||'huntiq-public-v112';
 const REQUIRED=Array.isArray(MANIFEST.required)?MANIFEST.required:['./','./index.html'];
 const OPTIONAL=Array.isArray(MANIFEST.optional)?MANIFEST.optional:[];
 
@@ -81,4 +81,3 @@ self.addEventListener('fetch',event=>{
   }
   event.respondWith(assetResponse(event));
 });
-

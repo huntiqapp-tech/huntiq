@@ -4,7 +4,8 @@ const {classifyOpportunityData,partitionCustomerOpportunities}=require('../lib/p
 const {
   detectAppMode,readSuppliedFeed,coerceIncoming,selectVisibleOpportunities,
   resolveCustomerAppFeed,filterOpportunities,presentProvenance,filterHistoryObservations,
-  authorizedCompsForEconomics,customerEconomicsAuthorized,suppressUnauthorizedAlert
+  authorizedCompsForEconomics,customerEconomicsAuthorized,suppressUnauthorizedAlert,
+  independentCustomerVisibility,revalidateCustomerDataState
 }=require('../lib/customer-app-boundary');
 const fs=require('fs');
 const path=require('path');
@@ -121,6 +122,8 @@ const partialAuthority=classifyOpportunityData({
 },{asOf});
 assert.equal(partialAuthority.customerVisible,false);
 assert.match(partialAuthority.reason,/customer-authority-incomplete/);
+assert.equal(independentCustomerVisibility({dataOrigin:'live',validationState:'validated',evidenceAuthority:{...authority,notificationAuthoritative:1}},{kind:'live',customerVisible:true}).allowed,false,'truthy authority values must not pass strict revalidation');
+assert.equal(revalidateCustomerDataState({dataOrigin:'live',validationState:'unvalidated',observedAt:'2026-09-07T11:00:00.000Z',evidenceAuthority:authority},{asOf}).customerVisible,false,'boundary must independently reject unvalidated customer rows');
 
 const scopedDeal={retailer:'Home Depot',productId:'sku-1',channel:'local',storeId:'1836'};
 const scopedHistory=filterHistoryObservations(scopedDeal,[
@@ -148,6 +151,16 @@ const missingClassifier=browserSandbox.HuntIQCustomerAppBoundary.selectVisibleOp
 ],{asOf});
 assert.equal(missingClassifier.visible.length,0);
 assert.equal(missingClassifier.hidden[0].dataState.reason,'classification-unavailable');
+
+const buggyClassifierSandbox={globalThis:{},URLSearchParams};
+buggyClassifierSandbox.globalThis=buggyClassifierSandbox;
+buggyClassifierSandbox.HuntIQDataState={classifyOpportunityData:()=>({kind:'live',label:'LIVE',customerVisible:true,alertEligible:true,ageHours:1,reason:null})};
+vm.runInNewContext(fs.readFileSync(path.join(__dirname,'..','lib','customer-app-boundary.js'),'utf8'),buggyClassifierSandbox);
+const independentlyWithheld=buggyClassifierSandbox.HuntIQCustomerAppBoundary.selectVisibleOpportunities([
+  {id:'classifier-regression',dataOrigin:'live',validationState:'validated',evidenceAuthority:{historyAuthoritative:true}}
+],{asOf,alertsEnabled:true});
+assert.equal(independentlyWithheld.visible.length,0,'a fail-open classifier regression must not expose a customer row');
+assert.match(independentlyWithheld.hidden[0].dataState.reason,/customer-authority-incomplete/);
 
 const groups=partitionCustomerOpportunities(feed().opportunities,{asOf});
 assert(groups.hidden.some(x=>x.id==='fix-shadow-hidden'));

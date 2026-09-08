@@ -1,13 +1,45 @@
 'use strict';
 const assert=require('assert');
 const {startStaticServer,findChrome,launchChrome,openPage,closeChrome,waitUntil}=require('./helpers/chrome-session');
+const {buildCustomerAuthorizedLivePayload}=require('../lib/customer-live-authority');
 
 function pageErrors(page){
   const consoleErrors=page.console.filter(entry=>entry.type==='error'||entry.type==='assert');
   return [...page.exceptions,...consoleErrors.map(entry=>entry.text)];
 }
 
+function buildAuthorizedE2eFeed(){
+  const productId='BUILDER-E2E-1';
+  const observedAt='2026-09-07T11:00:00.000Z';
+  const observation={
+    retailer:'Home Depot',productId,sku:productId,title:'Builder Authorized Live Drill',price:79,
+    observedAt,channel:'online',availability:'in stock',
+    source:{provider:'retailerapi',providerRecordId:'builder-e2e-record',retrievedAt:'2026-09-07T11:01:00.000Z',rightsClass:'licensed-customer-display',retentionPolicy:'contract-defined',redistributionAllowed:true}
+  };
+  const historyObservations=[109,99,89].map((price,index)=>({
+    retailer:observation.retailer,productId,channel:'online',price,
+    observedAt:`2026-08-${String(10+index*10).padStart(2,'0')}T11:00:00.000Z`,source:{provider:'retailerapi'},verified:true
+  }));
+  const completedSales=[139,135,137].map((price,index)=>({
+    productId,status:['sold','completed','fulfilled'][index],price,
+    soldAt:`2026-09-0${4-index}T10:00:00.000Z`,verified:true
+  }));
+  const assessment={
+    observation,historyObservations,completedSales,
+    historyEvidence:{historyPromoted:true,promotedCount:3,anomalyConfidence:88},resaleConfidence:84,
+    referencePrice:99,comps:{productId,verified:true,d30:137,d60:136,d90:135,soldWindowDays:90,currentAsks:[145]},
+    economics:{expectedProfit:35,roi:44,downsideProfit:24,downsideRoi:30},
+    opportunity:{evidence:{alertEligible:true}}
+  };
+  return buildCustomerAuthorizedLivePayload(
+    {provider:'retailerapi',validationState:'validated',assessments:[assessment]},
+    {authenticatedLookupPassed:true,manualSourceCheckPassed:true,customerDisplayAllowed:true,validatedAt:'2026-09-07T11:02:00.000Z'},
+    {asOf:'2026-09-07T12:00:00.000Z',enableAlerts:true}
+  );
+}
+
 (async()=>{
+  const builderFeed=buildAuthorizedE2eFeed();
   const chromePath=findChrome();
   if(!chromePath){
     console.error('Chrome is required for HUNTIQ PWA E2E tests');
@@ -137,6 +169,39 @@ function pageErrors(page){
     assert.match(suppliedState.provenance,/LIVE/);
     assert.match(suppliedState.provenance,/ZIP 18360/);
     assert.deepEqual(pageErrors(supplied),[]);
+
+    const built=await openPage(session,origin,{beforeLoad:`globalThis.HUNTIQ_CUSTOMER_FEED=${JSON.stringify(builderFeed)};`});
+    const builtState=await built.evaluate(`({
+      mode:document.body.dataset.huntiqMode,
+      titles:[...document.querySelectorAll('.deal-card h3')].map(el=>el.textContent),
+      market:document.querySelector('.market')&&document.querySelector('.market').textContent,
+      profit:document.querySelector('.profit')&&document.querySelector('.profit').textContent,
+      roi:document.querySelector('.roi')&&document.querySelector('.roi').textContent,
+      status:document.body.dataset.huntiqStatus
+    })`);
+    assert.equal(builtState.mode,'customer');
+    assert.deepEqual(builtState.titles,['Builder Authorized Live Drill']);
+    assert.notEqual(builtState.market,'n/a','real builder output must retain authorized sold-market evidence through app.js');
+    assert.notEqual(builtState.profit,'n/a','real builder output must retain authorized profit through app.js');
+    assert.notEqual(builtState.roi,'n/a','real builder output must retain authorized ROI through app.js');
+    assert.equal(builtState.status,'ready');
+    assert.deepEqual(pageErrors(built),[]);
+
+    const unlabeled=await openPage(session,origin,{beforeLoad:`
+      globalThis.HUNTIQ_CUSTOMER_FEED={
+        generatedAt:'2026-09-07T12:00:00.000Z',dataState:'customer-live',alertsEnabled:true,
+        opportunities:[{id:'unlabeled-e2e',title:'Unlabeled Injected Opportunity',retailer:'Home Depot',price:1}]
+      };
+    `});
+    const unlabeledState=await unlabeled.evaluate(`({
+      mode:document.body.dataset.huntiqMode,
+      titles:[...document.querySelectorAll('.deal-card h3')].map(el=>el.textContent),
+      html:document.body.innerText
+    })`);
+    assert(!unlabeledState.titles.includes('Unlabeled Injected Opportunity'),'unlabeled supplied rows must never render');
+    assert(!/Unlabeled Injected Opportunity/.test(unlabeledState.html));
+    assert.equal(unlabeledState.mode,'demo','a wholly withheld supplied envelope may fall back only to explicitly labeled demo rows');
+    assert.deepEqual(pageErrors(unlabeled),[]);
 
     const asksOnly=await openPage(session,origin,{beforeLoad:`
       globalThis.HUNTIQ_CUSTOMER_FEED={

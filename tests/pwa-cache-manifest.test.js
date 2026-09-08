@@ -4,8 +4,8 @@ const fs=require('fs');
 const path=require('path');
 const manifest=require('../lib/pwa-cache-manifest');
 
-assert.equal(manifest.version,'0.9.111');
-assert.equal(manifest.cache,'huntiq-public-v111');
+assert.equal(manifest.version,'0.9.112');
+assert.equal(manifest.cache,'huntiq-public-v112');
 assert(manifest.required.includes('./index.html'));
 assert(manifest.required.includes('./app.js'));
 assert(manifest.required.includes('./lib/customer-app-boundary.js'));

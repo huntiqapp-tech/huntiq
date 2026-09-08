@@ -1,7 +1,7 @@
 {
   "service": "huntiq-pwa",
-  "version": "0.9.111",
-  "cache": "huntiq-public-v111",
+  "version": "0.9.112",
+  "cache": "huntiq-public-v112",
   "boundary": "server-owned-customer-feed",
   "previewData": "demo-fallback",
   "alertsEnabled": false,

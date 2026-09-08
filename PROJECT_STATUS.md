@@ -3,13 +3,18 @@
 Last established from repository and product handoff: 2026-09-07. This is the living handoff and must be updated after meaningful work.
 
 ## CURRENT VERSION
-- Package: **0.9.111**
+- Package: **0.9.112**
 - Public PWA preview is functional and still uses an explicit demonstration fallback until a server injects a rights-cleared `HUNTIQ_CUSTOMER_FEED`.
-- Offline cache: **`huntiq-public-v111`**.
+- Offline cache: **`huntiq-public-v112`**.
 - Customer app contract: `docs/customer-app-contract.md` (**frozen** for the parallel ingestion track).
 - Integration handoff: `docs/customer-feed-integration-handoff.md`.
 - Preview vs production / health: `docs/release-readiness.md` and `health.json`.
-- Verification: repair in progress; merge remains blocked until the rebased branch passes the full local and GitHub workflows with a clean review.
+- Verification: the rebased boundary repair must pass the full local and GitHub workflows with a clean exact-head review before merge.
+
+## v0.9.112 — independent customer-boundary revalidation (2026-09-08)
+- Customer-visible non-demo rows are independently rechecked at both feed selection and deal evaluation: origin must be explicitly live/cached, validation must be exactly validated, and every evidence-authority field must be boolean `true`.
+- A fail-open classifier regression, malformed customer envelope, or post-selection state mutation therefore cannot expose or alert on an unauthorized row.
+- Browser E2E coverage now passes realistic `buildCustomerAuthorizedLivePayload` output through `app.js`, proves unlabeled injected rows never render, and retains the active-ask-only economics quarantine.
 
 ## v0.9.111 — customer-facing app boundary (2026-09-07)
 - Replaced hard-coded-only PWA coupling with `lib/customer-app-boundary.js`. The app consumes a server-owned customer feed envelope (`HUNTIQ_CUSTOMER_FEED` or `HUNTIQ_CUSTOMER_OPPORTUNITIES`) and falls back to labeled demo data.
@@ -137,7 +142,7 @@ Last established from repository and product handoff: 2026-09-07. This is the li
 
 ## NEXT — HIGH PRIORITY
 - Run the Home Depot adapter only in a trusted server runtime after an explicit terms/robots review; compare sanitized shadow output against the source page before considering any retention or customer display.
-- Make the existing RetailerAPI key available to the trusted server runtime as `RETAILERAPI_KEY` and run `npm run smoke:retailerapi`; never place the key in the public repository or browser bundle.
+- A RetailerAPI credential is not stored anywhere in this repository or browser bundle. When the existing credential is securely exposed to the trusted server runtime as `RETAILERAPI_KEY`, run `npm run smoke:retailerapi`; never copy its value into source, fixtures, logs, or customer payloads.
 - Make the Bright Data token available to the trusted server runtime as `BRIGHTDATA_API_TOKEN`, set an explicit `BRIGHTDATA_TEST_URL` and optional five-digit `BRIGHTDATA_TEST_ZIP`, then run `npm run smoke:brightdata`. The smoke run is capped at one record and must remain shadow-only until its sanitized snapshot is manually checked.
 - Manually validate a representative RetailerAPI sample against source retailer pages before promoting shadow observations or enabling alerts.
 - Run authenticated RetailerAPI lookup and manual source-page validation, then change only approved observations from `shadow-live` to validated history; keep alerts disabled until that evidence is recorded.
@@ -147,4 +152,3 @@ Last established from repository and product handoff: 2026-09-07. This is the li
 - Connect a legitimate completed-sale provider before claiming live 30/60/90 sold history.
 - Persist production evaluator/history/promotion/resale/source/alert/Deal Coach/evidence-agreement snapshots once backend storage is connected.
 - Expand actual notification delivery after backend/account architecture is selected.
-
